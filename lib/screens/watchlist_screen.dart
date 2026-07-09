@@ -180,16 +180,29 @@ class _WatchlistShowsTabState extends State<_WatchlistShowsTab> {
                     final subtitle = progress == null
                         ? show.status
                         : '${progress.watchedCount}/${progress.airedCount} episodi visti';
+                    final isComplete =
+                        progress?.isShowComplete(show.seasons) ?? false;
+                    final isCaughtUpButOngoing =
+                        progress?.isShowCaughtUpButOngoing(show.seasons) ??
+                        false;
                     return PosterListTile(
                       posterPath: show.posterPath,
                       title: show.name,
                       subtitle: subtitle,
-                      titleSuffix:
-                          progress?.isShowComplete(show.seasons) ?? false
+                      titleSuffix: isComplete
                           ? const Icon(
                               Icons.check_circle,
                               color: Colors.green,
                               size: 18,
+                            )
+                          : isCaughtUpButOngoing
+                          ? const Text(
+                              '=',
+                              style: TextStyle(
+                                color: Colors.lightGreen,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             )
                           : null,
                       onTap: () => _openDetail(context, show.id),

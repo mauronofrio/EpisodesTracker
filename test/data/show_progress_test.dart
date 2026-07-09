@@ -632,6 +632,296 @@ void main() {
     });
   });
 
+  group('ShowProgress.isSeasonCaughtUpButOngoing', () {
+    test(
+      'true when every aired episode is watched but more episodes are still to come',
+      () async {
+        final mockClient = MockClient((request) async {
+          if (request.url.path.endsWith('/season/3')) {
+            return _seasonResponse(3, [
+              _episode(id: 1, season: 3, number: 1, airDate: '2026-06-01'),
+              _episode(id: 2, season: 3, number: 2, airDate: '2026-06-08'),
+              _episode(id: 3, season: 3, number: 3, airDate: '2026-06-15'),
+              // Episodes 4-8 not out yet, but TMDB already lists 8 total.
+            ]);
+          }
+          return http.Response('not found', 404);
+        });
+        final tmdbClient = TmdbClient(
+          httpClient: mockClient,
+          readAccessToken: 'test-token',
+        );
+        final show = _show(
+          seasons: [
+            const SeasonSummary(
+              seasonNumber: 3,
+              name: 'Season 3',
+              episodeCount: 8,
+              posterPath: null,
+              airDate: null,
+            ),
+          ],
+        );
+
+        await watchedRepository.markSeasonWatched(1399, 3, [1, 2, 3]);
+        final progress = await computeShowProgress(
+          tmdbClient: tmdbClient,
+          watchedRepository: watchedRepository,
+          show: show,
+        );
+
+        expect(progress.isSeasonCaughtUpButOngoing(3, 8), isTrue);
+      },
+    );
+
+    test('false when the season has finished airing (already complete)', () async {
+      final mockClient = MockClient((request) async {
+        if (request.url.path.endsWith('/season/1')) {
+          return _seasonResponse(1, [
+            _episode(id: 1, season: 1, number: 1, airDate: '2020-01-01'),
+            _episode(id: 2, season: 1, number: 2, airDate: '2020-01-08'),
+          ]);
+        }
+        return http.Response('not found', 404);
+      });
+      final tmdbClient = TmdbClient(
+        httpClient: mockClient,
+        readAccessToken: 'test-token',
+      );
+      final show = _show(
+        seasons: [
+          const SeasonSummary(
+            seasonNumber: 1,
+            name: 'Season 1',
+            episodeCount: 2,
+            posterPath: null,
+            airDate: null,
+          ),
+        ],
+      );
+
+      await watchedRepository.markSeasonWatched(1399, 1, [1, 2]);
+      final progress = await computeShowProgress(
+        tmdbClient: tmdbClient,
+        watchedRepository: watchedRepository,
+        show: show,
+      );
+
+      expect(progress.isSeasonCaughtUpButOngoing(1, 2), isFalse);
+    });
+
+    test('false when some aired episodes are still unwatched', () async {
+      final mockClient = MockClient((request) async {
+        if (request.url.path.endsWith('/season/3')) {
+          return _seasonResponse(3, [
+            _episode(id: 1, season: 3, number: 1, airDate: '2026-06-01'),
+            _episode(id: 2, season: 3, number: 2, airDate: '2026-06-08'),
+          ]);
+        }
+        return http.Response('not found', 404);
+      });
+      final tmdbClient = TmdbClient(
+        httpClient: mockClient,
+        readAccessToken: 'test-token',
+      );
+      final show = _show(
+        seasons: [
+          const SeasonSummary(
+            seasonNumber: 3,
+            name: 'Season 3',
+            episodeCount: 8,
+            posterPath: null,
+            airDate: null,
+          ),
+        ],
+      );
+
+      await watchedRepository.markSeasonWatched(1399, 3, [1]);
+      final progress = await computeShowProgress(
+        tmdbClient: tmdbClient,
+        watchedRepository: watchedRepository,
+        show: show,
+      );
+
+      expect(progress.isSeasonCaughtUpButOngoing(3, 8), isFalse);
+    });
+
+    test('false for a season with no aired episodes yet', () async {
+      final farFuture = DateTime.now().add(const Duration(days: 365));
+      final farFutureDate =
+          '${farFuture.year}-${farFuture.month.toString().padLeft(2, '0')}-${farFuture.day.toString().padLeft(2, '0')}';
+      final mockClient = MockClient((request) async {
+        if (request.url.path.endsWith('/season/1')) {
+          return _seasonResponse(1, [
+            _episode(id: 1, season: 1, number: 1, airDate: farFutureDate),
+          ]);
+        }
+        return http.Response('not found', 404);
+      });
+      final tmdbClient = TmdbClient(
+        httpClient: mockClient,
+        readAccessToken: 'test-token',
+      );
+      final show = _show(
+        seasons: [
+          const SeasonSummary(
+            seasonNumber: 1,
+            name: 'Season 1',
+            episodeCount: 1,
+            posterPath: null,
+            airDate: null,
+          ),
+        ],
+      );
+
+      final progress = await computeShowProgress(
+        tmdbClient: tmdbClient,
+        watchedRepository: watchedRepository,
+        show: show,
+      );
+
+      expect(progress.isSeasonCaughtUpButOngoing(1, 1), isFalse);
+    });
+  });
+
+  group('ShowProgress.isShowCaughtUpButOngoing', () {
+    test(
+      'true when every aired episode across every season is watched but a season is still airing',
+      () async {
+        final mockClient = MockClient((request) async {
+          if (request.url.path.endsWith('/season/1')) {
+            return _seasonResponse(1, [
+              _episode(id: 1, season: 1, number: 1, airDate: '2020-01-01'),
+            ]);
+          }
+          if (request.url.path.endsWith('/season/2')) {
+            return _seasonResponse(2, [
+              _episode(id: 2, season: 2, number: 1, airDate: '2026-06-01'),
+              // Episode 2 of season 2 not out yet; TMDB lists 2 total.
+            ]);
+          }
+          return http.Response('not found', 404);
+        });
+        final tmdbClient = TmdbClient(
+          httpClient: mockClient,
+          readAccessToken: 'test-token',
+        );
+        final seasons = [
+          const SeasonSummary(
+            seasonNumber: 1,
+            name: 'Season 1',
+            episodeCount: 1,
+            posterPath: null,
+            airDate: null,
+          ),
+          const SeasonSummary(
+            seasonNumber: 2,
+            name: 'Season 2',
+            episodeCount: 2,
+            posterPath: null,
+            airDate: null,
+          ),
+        ];
+        final show = _show(seasons: seasons);
+
+        await watchedRepository.markSeasonWatched(1399, 1, [1]);
+        await watchedRepository.markSeasonWatched(1399, 2, [1]);
+        final progress = await computeShowProgress(
+          tmdbClient: tmdbClient,
+          watchedRepository: watchedRepository,
+          show: show,
+        );
+
+        expect(progress.isShowCaughtUpButOngoing(seasons), isTrue);
+      },
+    );
+
+    test('false when the show is fully complete', () async {
+      final mockClient = MockClient((request) async {
+        if (request.url.path.endsWith('/season/1')) {
+          return _seasonResponse(1, [
+            _episode(id: 1, season: 1, number: 1, airDate: '2020-01-01'),
+          ]);
+        }
+        return http.Response('not found', 404);
+      });
+      final tmdbClient = TmdbClient(
+        httpClient: mockClient,
+        readAccessToken: 'test-token',
+      );
+      final seasons = [
+        const SeasonSummary(
+          seasonNumber: 1,
+          name: 'Season 1',
+          episodeCount: 1,
+          posterPath: null,
+          airDate: null,
+        ),
+      ];
+      final show = _show(seasons: seasons);
+
+      await watchedRepository.markSeasonWatched(1399, 1, [1]);
+      final progress = await computeShowProgress(
+        tmdbClient: tmdbClient,
+        watchedRepository: watchedRepository,
+        show: show,
+      );
+
+      expect(progress.isShowCaughtUpButOngoing(seasons), isFalse);
+    });
+
+    test('false when some aired episode is still unwatched', () async {
+      final mockClient = MockClient((request) async {
+        if (request.url.path.endsWith('/season/1')) {
+          return _seasonResponse(1, [
+            _episode(id: 1, season: 1, number: 1, airDate: '2020-01-01'),
+            _episode(id: 2, season: 1, number: 2, airDate: '2020-01-08'),
+          ]);
+        }
+        return http.Response('not found', 404);
+      });
+      final tmdbClient = TmdbClient(
+        httpClient: mockClient,
+        readAccessToken: 'test-token',
+      );
+      final seasons = [
+        const SeasonSummary(
+          seasonNumber: 1,
+          name: 'Season 1',
+          episodeCount: 8,
+          posterPath: null,
+          airDate: null,
+        ),
+      ];
+      final show = _show(seasons: seasons);
+
+      await watchedRepository.markSeasonWatched(1399, 1, [1]);
+      final progress = await computeShowProgress(
+        tmdbClient: tmdbClient,
+        watchedRepository: watchedRepository,
+        show: show,
+      );
+
+      expect(progress.isShowCaughtUpButOngoing(seasons), isFalse);
+    });
+
+    test('false when nothing has aired at all', () async {
+      final tmdbClient = TmdbClient(
+        httpClient: MockClient((_) async => http.Response('not found', 404)),
+        readAccessToken: 'test-token',
+      );
+      final show = _show(seasons: const []);
+
+      final progress = await computeShowProgress(
+        tmdbClient: tmdbClient,
+        watchedRepository: watchedRepository,
+        show: show,
+      );
+
+      expect(progress.isShowCaughtUpButOngoing(const []), isFalse);
+    });
+  });
+
   group('airedEpisodeNumbers', () {
     test('keeps only episodes with a non-future air date', () {
       final farFuture = DateTime.now().add(const Duration(days: 365));

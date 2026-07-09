@@ -52,6 +52,25 @@ class ShowProgress {
       (season) => isSeasonComplete(season.seasonNumber, season.episodeCount),
     );
   }
+
+  /// True when every episode that has aired so far in the season is
+  /// watched, but the season itself isn't finished yet (more episodes
+  /// still to come) — distinct from [isSeasonComplete], which requires
+  /// the whole season to be done airing too.
+  bool isSeasonCaughtUpButOngoing(int seasonNumber, int seasonEpisodeCount) {
+    final aired = airedCountBySeason[seasonNumber] ?? 0;
+    if (aired == 0) return false;
+    if ((watchedCountBySeason[seasonNumber] ?? 0) < aired) return false;
+    return aired < seasonEpisodeCount;
+  }
+
+  /// Same idea as [isSeasonCaughtUpButOngoing] but for the whole show:
+  /// every aired episode across every season is watched, but at least one
+  /// season isn't finished airing yet.
+  bool isShowCaughtUpButOngoing(List<SeasonSummary> seasons) {
+    if (watchedCount == 0 || watchedCount != airedCount) return false;
+    return !isShowComplete(seasons);
+  }
 }
 
 /// Fetches every season's episode list for [show] (in parallel, tolerating

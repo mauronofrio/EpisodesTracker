@@ -208,6 +208,9 @@ class _DetailScreenState extends State<DetailScreen> {
     final showIsComplete =
         _showDetails != null &&
         (_progress?.isShowComplete(_showDetails!.seasons) ?? false);
+    final showIsCaughtUpButOngoing =
+        _showDetails != null &&
+        (_progress?.isShowCaughtUpButOngoing(_showDetails!.seasons) ?? false);
 
     return Scaffold(
       appBar: AppBar(
@@ -217,6 +220,9 @@ class _DetailScreenState extends State<DetailScreen> {
             if (showIsComplete) ...[
               const SizedBox(width: 8),
               const Icon(Icons.check_circle, color: Colors.green),
+            ] else if (showIsCaughtUpButOngoing) ...[
+              const SizedBox(width: 8),
+              const _CaughtUpIndicator(),
             ],
           ],
         ),
@@ -326,9 +332,17 @@ class _DetailScreenState extends State<DetailScreen> {
                     season.episodeCount,
                   ) ??
                   false;
+              final isCaughtUpButOngoing =
+                  _progress?.isSeasonCaughtUpButOngoing(
+                    season.seasonNumber,
+                    season.episodeCount,
+                  ) ??
+                  false;
               return ListTile(
                 leading: isComplete
                     ? const Icon(Icons.check_circle, color: Colors.green)
+                    : isCaughtUpButOngoing
+                    ? const _CaughtUpIndicator()
                     : null,
                 title: Text(season.name),
                 subtitle: Text(subtitle),
@@ -363,6 +377,32 @@ class _DetailScreenState extends State<DetailScreen> {
             }),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// A lighter-green "=" mark shown when the user is caught up with every
+/// aired episode but the season/show isn't finished yet — distinct from
+/// the (darker green) check mark used for a fully completed season/show.
+/// Sized to match [Icons.check_circle] so it lines up in the same slots.
+class _CaughtUpIndicator extends StatelessWidget {
+  const _CaughtUpIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 24,
+      height: 24,
+      child: Center(
+        child: Text(
+          '=',
+          style: TextStyle(
+            color: Colors.lightGreen,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
       ),
     );
   }
