@@ -288,7 +288,12 @@ class _DetailScreenState extends State<DetailScreen> {
               final subtitle = watchedInSeason == null
                   ? '${season.episodeCount} episodi'
                   : '$watchedInSeason/${season.episodeCount} episodi visti';
+              final isComplete =
+                  _progress?.isSeasonComplete(season.seasonNumber) ?? false;
               return ListTile(
+                leading: isComplete
+                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    : null,
                 title: Text(season.name),
                 subtitle: Text(subtitle),
                 trailing: Row(

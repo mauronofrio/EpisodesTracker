@@ -12,16 +12,27 @@ class ShowProgress {
   /// Null if the user is caught up with everything aired so far.
   final Episode? nextToWatch;
 
-  /// Watched-episode count per season number. A season with no aired
-  /// episodes yet (entirely in the future) has no entry here.
+  /// Watched-episode and aired-episode counts per season number. A season
+  /// with no aired episodes yet (entirely in the future) has no entry in
+  /// either map.
   final Map<int, int> watchedCountBySeason;
+  final Map<int, int> airedCountBySeason;
 
   const ShowProgress({
     required this.watchedCount,
     required this.airedCount,
     required this.nextToWatch,
     required this.watchedCountBySeason,
+    required this.airedCountBySeason,
   });
+
+  /// A season counts as complete once every episode that has aired so far
+  /// is watched — never true for a season with zero aired episodes yet.
+  bool isSeasonComplete(int seasonNumber) {
+    final aired = airedCountBySeason[seasonNumber];
+    if (aired == null || aired == 0) return false;
+    return (watchedCountBySeason[seasonNumber] ?? 0) >= aired;
+  }
 }
 
 /// Fetches every season's episode list for [show] (in parallel, tolerating
@@ -60,7 +71,10 @@ Future<ShowProgress> computeShowProgress({
   var watchedCount = 0;
   Episode? nextToWatch;
   final watchedCountBySeason = <int, int>{};
+  final airedCountBySeason = <int, int>{};
   for (final episode in airedEpisodes) {
+    airedCountBySeason[episode.seasonNumber] =
+        (airedCountBySeason[episode.seasonNumber] ?? 0) + 1;
     final id = WatchedEpisodeId(
       showId: show.id,
       season: episode.seasonNumber,
@@ -80,6 +94,7 @@ Future<ShowProgress> computeShowProgress({
     airedCount: airedEpisodes.length,
     nextToWatch: nextToWatch,
     watchedCountBySeason: watchedCountBySeason,
+    airedCountBySeason: airedCountBySeason,
   );
 }
 
