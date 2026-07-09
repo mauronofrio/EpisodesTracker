@@ -50,6 +50,7 @@ class _DetailScreenState extends State<DetailScreen> {
         );
         final inWatchlist = await widget.watchlistRepository
             .isShowInWatchlist(widget.tmdbId);
+        if (!mounted) return;
         setState(() {
           _showDetails = details;
           _inWatchlist = inWatchlist;
@@ -64,6 +65,7 @@ class _DetailScreenState extends State<DetailScreen> {
         final watched = await widget.watchedRepository.isMovieWatched(
           widget.tmdbId,
         );
+        if (!mounted) return;
         setState(() {
           _movieDetails = details;
           _inWatchlist = inWatchlist;
@@ -72,6 +74,7 @@ class _DetailScreenState extends State<DetailScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e;
         _loading = false;
