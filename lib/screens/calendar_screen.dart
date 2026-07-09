@@ -13,6 +13,7 @@ import '../widgets/debounced_search_field.dart';
 import '../widgets/poster_list_tile.dart';
 import '../widgets/search_results_list.dart';
 import '../widgets/sign_out_button.dart';
+import '../widgets/update_indicator_button.dart';
 import 'detail_screen.dart';
 
 class _UpcomingItem {
@@ -152,7 +153,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
             key: ValueKey(_searchFieldGeneration),
             onQueryChanged: (query) => setState(() => _query = query),
           ),
-          actions: [SignOutButton(authService: widget.authService)],
+          actions: [
+            const UpdateIndicatorButton(),
+            SignOutButton(authService: widget.authService),
+          ],
         ),
         body: searching
             ? SearchResultsList(
