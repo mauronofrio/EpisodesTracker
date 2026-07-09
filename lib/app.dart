@@ -68,7 +68,7 @@ class _EpisodesTrackerAppState extends State<EpisodesTrackerApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'EpisodesTracker',
+      title: 'Episodes Tracker',
       scaffoldMessengerKey: _scaffoldMessengerKey,
       theme: AppTheme.dark,
       home: UpdateBanner(

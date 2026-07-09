@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Icon(Icons.live_tv, size: 72, color: colorScheme.primary),
               const SizedBox(height: 16),
               Text(
-                'EpisodesTracker',
+                'Episodes Tracker',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),

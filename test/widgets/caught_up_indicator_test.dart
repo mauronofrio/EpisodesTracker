@@ -3,24 +3,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('renders a light-green circle with a dark "=" mark', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: CaughtUpIndicator())),
-    );
+  testWidgets(
+    'renders a light-green circle with two bars matching the background',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(scaffoldBackgroundColor: Colors.black),
+          home: const Scaffold(body: CaughtUpIndicator()),
+        ),
+      );
 
-    expect(find.text('='), findsOneWidget);
+      final circle = tester.widget<Icon>(find.byIcon(Icons.circle));
+      expect(circle.color, Colors.lightGreen);
+      expect(circle.size, 24);
 
-    final circle = tester.widget<Icon>(find.byIcon(Icons.circle));
-    expect(circle.color, Colors.lightGreen);
-    expect(circle.size, 24);
+      final bars = tester
+          .widgetList<Container>(
+            find.descendant(
+              of: find.byType(CaughtUpIndicator),
+              matching: find.byType(Container),
+            ),
+          )
+          .toList();
+      expect(bars, hasLength(2));
+      for (final bar in bars) {
+        expect(bar.color, Colors.black);
+        expect(bar.constraints?.maxWidth, 24 * 0.56);
+        expect(bar.constraints?.maxHeight, 24 * 0.12);
+      }
+    },
+  );
 
-    final text = tester.widget<Text>(find.text('='));
-    expect(text.style?.color, Colors.green.shade900);
-  });
-
-  testWidgets('scales the mark size with the size parameter', (tester) async {
+  testWidgets('scales the bar size with the size parameter', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: CaughtUpIndicator(size: 18))),
     );
@@ -28,8 +42,18 @@ void main() {
     final circle = tester.widget<Icon>(find.byIcon(Icons.circle));
     expect(circle.size, 18);
 
-    final text = tester.widget<Text>(find.text('='));
-    expect(text.style?.fontSize, 18 * 0.5);
+    final bars = tester
+        .widgetList<Container>(
+          find.descendant(
+            of: find.byType(CaughtUpIndicator),
+            matching: find.byType(Container),
+          ),
+        )
+        .toList();
+    for (final bar in bars) {
+      expect(bar.constraints?.maxWidth, 18 * 0.56);
+      expect(bar.constraints?.maxHeight, 18 * 0.12);
+    }
   });
 
   testWidgets(
@@ -53,4 +77,19 @@ void main() {
       expect(caughtUpSize, checkCircleSize);
     },
   );
+
+  testWidgets('centers the bars exactly within the circle', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: Center(child: CaughtUpIndicator()))),
+    );
+
+    final circleCenter = tester.getCenter(find.byIcon(Icons.circle));
+    final columnCenter = tester.getCenter(
+      find.descendant(
+        of: find.byType(CaughtUpIndicator),
+        matching: find.byType(Column),
+      ),
+    );
+    expect(columnCenter, circleCenter);
+  });
 }
