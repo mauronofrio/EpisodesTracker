@@ -45,5 +45,11 @@ app.*.map.json
 /android/app/release
 .env
 
+# Release signing key — never share; losing it means future releases
+# can't be signed to match already-installed APKs
+/android/key.properties
+/android/app/*.jks
+/android/app/*.keystore
+
 # Local working notes, not meant to be shared/versioned
 PROGRESS.md
