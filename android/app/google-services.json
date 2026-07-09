@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "745329621491",
+    "project_id": "episodestracker-25bf3",
+    "storage_bucket": "episodestracker-25bf3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:745329621491:android:63f37b5f4e4d54cf6aba86",
+        "android_client_info": {
+          "package_name": "com.mauronofrio.episodes_tracker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "745329621491-flddu83c12nhh4gvsmd70cbjg9nrb00j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mauronofrio.episodes_tracker",
+            "certificate_hash": "5aa16fa126ae1a608ae19951f25c8ec0465c8f42"
+          }
+        },
+        {
+          "client_id": "745329621491-mjh4jsddl1trutd9ttovpudhv1m5tuud.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBg6Hnwqzw4ETiSKbRPDkJf23ZHulpVT8k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "745329621491-mjh4jsddl1trutd9ttovpudhv1m5tuud.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
