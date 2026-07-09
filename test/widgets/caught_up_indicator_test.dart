@@ -12,10 +12,9 @@ void main() {
 
     expect(find.text('='), findsOneWidget);
 
-    final container = tester.widget<Container>(find.byType(Container));
-    final decoration = container.decoration as BoxDecoration;
-    expect(decoration.shape, BoxShape.circle);
-    expect(decoration.color, Colors.lightGreen);
+    final circle = tester.widget<Icon>(find.byIcon(Icons.circle));
+    expect(circle.color, Colors.lightGreen);
+    expect(circle.size, 24);
 
     final text = tester.widget<Text>(find.text('='));
     expect(text.style?.color, Colors.green.shade900);
@@ -23,16 +22,35 @@ void main() {
 
   testWidgets('scales the mark size with the size parameter', (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(body: CaughtUpIndicator(size: 18)),
-      ),
+      const MaterialApp(home: Scaffold(body: CaughtUpIndicator(size: 18))),
     );
 
-    final container = tester.widget<Container>(find.byType(Container));
-    expect(container.constraints?.maxWidth, 18);
-    expect(container.constraints?.maxHeight, 18);
+    final circle = tester.widget<Icon>(find.byIcon(Icons.circle));
+    expect(circle.size, 18);
 
     final text = tester.widget<Text>(find.text('='));
-    expect(text.style?.fontSize, 18 * 0.6);
+    expect(text.style?.fontSize, 18 * 0.5);
   });
+
+  testWidgets(
+    'has the exact same footprint as Icon(Icons.check_circle) at the same size',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                CaughtUpIndicator(),
+                Icon(Icons.check_circle, color: Colors.green),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final caughtUpSize = tester.getSize(find.byType(CaughtUpIndicator));
+      final checkCircleSize = tester.getSize(find.byIcon(Icons.check_circle));
+      expect(caughtUpSize, checkCircleSize);
+    },
+  );
 }
