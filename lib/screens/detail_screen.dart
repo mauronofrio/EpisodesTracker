@@ -197,9 +197,22 @@ class _DetailScreenState extends State<DetailScreen> {
     final title = _showDetails?.name ?? _movieDetails!.title;
     final overview = _showDetails?.overview ?? _movieDetails!.overview;
     final posterPath = _showDetails?.posterPath ?? _movieDetails!.posterPath;
+    final showIsComplete =
+        _showDetails != null &&
+        (_progress?.isShowComplete(_showDetails!.seasons) ?? false);
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+            if (showIsComplete) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.check_circle, color: Colors.green),
+            ],
+          ],
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -289,7 +302,11 @@ class _DetailScreenState extends State<DetailScreen> {
                   ? '${season.episodeCount} episodi'
                   : '$watchedInSeason/${season.episodeCount} episodi visti';
               final isComplete =
-                  _progress?.isSeasonComplete(season.seasonNumber) ?? false;
+                  _progress?.isSeasonComplete(
+                    season.seasonNumber,
+                    season.episodeCount,
+                  ) ??
+                  false;
               return ListTile(
                 leading: isComplete
                     ? const Icon(Icons.check_circle, color: Colors.green)

@@ -1,5 +1,6 @@
 import 'firestore/watched_repository.dart';
 import 'models/episode.dart';
+import 'models/season_summary.dart';
 import 'models/tv_show_details.dart';
 import 'resilient_fetch.dart';
 import 'tmdb_client.dart';
@@ -26,12 +27,30 @@ class ShowProgress {
     required this.airedCountBySeason,
   });
 
-  /// A season counts as complete once every episode that has aired so far
-  /// is watched — never true for a season with zero aired episodes yet.
-  bool isSeasonComplete(int seasonNumber) {
-    final aired = airedCountBySeason[seasonNumber];
-    if (aired == null || aired == 0) return false;
-    return (watchedCountBySeason[seasonNumber] ?? 0) >= aired;
+  /// A season counts as complete only once every episode TMDB currently
+  /// lists for it is watched — [seasonEpisodeCount] is the season's own
+  /// total (e.g. `SeasonSummary.episodeCount`), not just the aired subset.
+  /// This deliberately does NOT use airedCountBySeason: a season that's
+  /// still airing (3 of 8 episodes out, all 3 watched) must stay
+  /// incomplete, not show as done just because nothing more has aired
+  /// *yet*. Since unaired episodes can never be marked watched, this
+  /// naturally requires the season to have finished airing too.
+  bool isSeasonComplete(int seasonNumber, int seasonEpisodeCount) {
+    if (seasonEpisodeCount == 0) return false;
+    return (watchedCountBySeason[seasonNumber] ?? 0) >= seasonEpisodeCount;
+  }
+
+  /// The whole show counts as complete only when every season TMDB
+  /// currently lists (per [seasons]) is complete by the same rule. If a
+  /// new season is announced/added by TMDB with its own episode count
+  /// while the show was previously "complete", this immediately becomes
+  /// false again — the checkmark disappears as soon as TMDB reflects the
+  /// new season's episodes, not waiting for anything else.
+  bool isShowComplete(List<SeasonSummary> seasons) {
+    if (seasons.isEmpty) return false;
+    return seasons.every(
+      (season) => isSeasonComplete(season.seasonNumber, season.episodeCount),
+    );
   }
 }
 
