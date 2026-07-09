@@ -6,6 +6,7 @@ import '../data/firestore/watchlist_repository.dart';
 import '../data/models/episode.dart';
 import '../data/models/movie_details.dart';
 import '../data/models/search_result.dart';
+import '../data/models/season_summary.dart';
 import '../data/models/tv_show_details.dart';
 import '../data/show_progress.dart';
 import '../data/tmdb_client.dart';
@@ -162,6 +163,26 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
+  Future<void> _markSeasonWatchedFromSummary(SeasonSummary season) async {
+    try {
+      final episodes = await widget.tmdbClient.getSeasonEpisodes(
+        widget.tmdbId,
+        season.seasonNumber,
+      );
+      await widget.watchedRepository.markSeasonWatched(
+        widget.tmdbId,
+        season.seasonNumber,
+        airedEpisodeNumbers(episodes),
+      );
+      await _refreshProgress();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -261,11 +282,26 @@ class _DetailScreenState extends State<DetailScreen> {
               'Stagioni',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            ..._showDetails!.seasons.map(
-              (season) => ListTile(
+            ..._showDetails!.seasons.map((season) {
+              final watchedInSeason =
+                  _progress?.watchedCountBySeason[season.seasonNumber];
+              final subtitle = watchedInSeason == null
+                  ? '${season.episodeCount} episodi'
+                  : '$watchedInSeason/${season.episodeCount} episodi visti';
+              return ListTile(
                 title: Text(season.name),
-                subtitle: Text('${season.episodeCount} episodi'),
-                trailing: const Icon(Icons.chevron_right),
+                subtitle: Text(subtitle),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.playlist_add_check),
+                      tooltip: 'Segna stagione vista',
+                      onPressed: () => _markSeasonWatchedFromSummary(season),
+                    ),
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -279,8 +315,8 @@ class _DetailScreenState extends State<DetailScreen> {
                     ),
                   );
                 },
-              ),
-            ),
+              );
+            }),
           ],
         ],
       ),

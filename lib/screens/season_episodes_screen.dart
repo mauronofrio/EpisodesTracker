@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../data/firestore/watched_repository.dart';
 import '../data/models/episode.dart';
+import '../data/show_progress.dart';
 import '../data/tmdb_client.dart';
 
 class SeasonEpisodesScreen extends StatefulWidget {
@@ -73,17 +74,11 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
   Future<void> _markSeasonWatched() async {
     final episodes = _loadedEpisodes;
     if (episodes == null) return;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final airedEpisodeNumbers = episodes
-        .where((e) => e.airDate != null && !e.airDate!.isAfter(today))
-        .map((e) => e.episodeNumber)
-        .toList();
     try {
       await widget.watchedRepository.markSeasonWatched(
         widget.showId,
         widget.seasonNumber,
-        airedEpisodeNumbers,
+        airedEpisodeNumbers(episodes),
       );
     } catch (e) {
       if (!mounted) return;

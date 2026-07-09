@@ -12,10 +12,15 @@ class ShowProgress {
   /// Null if the user is caught up with everything aired so far.
   final Episode? nextToWatch;
 
+  /// Watched-episode count per season number. A season with no aired
+  /// episodes yet (entirely in the future) has no entry here.
+  final Map<int, int> watchedCountBySeason;
+
   const ShowProgress({
     required this.watchedCount,
     required this.airedCount,
     required this.nextToWatch,
+    required this.watchedCountBySeason,
   });
 }
 
@@ -54,6 +59,7 @@ Future<ShowProgress> computeShowProgress({
 
   var watchedCount = 0;
   Episode? nextToWatch;
+  final watchedCountBySeason = <int, int>{};
   for (final episode in airedEpisodes) {
     final id = WatchedEpisodeId(
       showId: show.id,
@@ -62,6 +68,8 @@ Future<ShowProgress> computeShowProgress({
     );
     if (watched.containsKey(id)) {
       watchedCount++;
+      watchedCountBySeason[episode.seasonNumber] =
+          (watchedCountBySeason[episode.seasonNumber] ?? 0) + 1;
     } else {
       nextToWatch ??= episode;
     }
@@ -71,5 +79,18 @@ Future<ShowProgress> computeShowProgress({
     watchedCount: watchedCount,
     airedCount: airedEpisodes.length,
     nextToWatch: nextToWatch,
+    watchedCountBySeason: watchedCountBySeason,
   );
+}
+
+/// Episode numbers from [episodes] that have already aired (non-null air
+/// date, not in the future). Shared by any caller that needs to mark a
+/// whole season watched without including unaired episodes.
+List<int> airedEpisodeNumbers(List<Episode> episodes) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  return episodes
+      .where((e) => e.airDate != null && !e.airDate!.isAfter(today))
+      .map((e) => e.episodeNumber)
+      .toList();
 }
