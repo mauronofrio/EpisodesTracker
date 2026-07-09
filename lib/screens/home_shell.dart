@@ -4,6 +4,7 @@ import '../auth/auth_service.dart';
 import '../data/firestore/watched_repository.dart';
 import '../data/firestore/watchlist_repository.dart';
 import '../data/tmdb_client.dart';
+import '../l10n/app_localizations.dart';
 import 'calendar_screen.dart';
 import 'watchlist_screen.dart';
 
@@ -33,6 +34,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final screens = [
       WatchlistScreen(
         authService: widget.authService,
@@ -53,14 +55,16 @@ class _HomeShellState extends State<HomeShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (index) => setState(() => _index = index),
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.bookmark),
+            // "Watchlist" is already the same word in Italian and
+            // English - not localized.
             label: 'Watchlist',
           ),
           NavigationDestination(
-            icon: Icon(Icons.calendar_month),
-            label: 'Calendario',
+            icon: const Icon(Icons.calendar_month),
+            label: l10n.navCalendar,
           ),
         ],
       ),

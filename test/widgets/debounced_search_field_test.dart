@@ -2,13 +2,15 @@ import 'package:episodes_tracker/widgets/debounced_search_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/localized_test_app.dart';
+
 void main() {
   testWidgets('reports the trimmed query 400ms after typing stops', (
     tester,
   ) async {
     final queries = <String>[];
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: Scaffold(
           appBar: AppBar(
             title: DebouncedSearchField(onQueryChanged: queries.add),
@@ -31,7 +33,7 @@ void main() {
   ) async {
     final queries = <String>[];
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: Scaffold(
           appBar: AppBar(
             title: DebouncedSearchField(onQueryChanged: queries.add),
@@ -53,7 +55,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: Scaffold(
           appBar: AppBar(
             title: DebouncedSearchField(onQueryChanged: (_) {}),

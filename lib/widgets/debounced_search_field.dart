@@ -2,17 +2,19 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 /// A search text field meant to sit in an AppBar's `title`. Reports the
 /// trimmed query 400ms after the user stops typing (not on every
 /// keystroke), and an empty string immediately when cleared.
 class DebouncedSearchField extends StatefulWidget {
   final ValueChanged<String> onQueryChanged;
-  final String hintText;
+  final String? hintText;
 
   const DebouncedSearchField({
     super.key,
     required this.onQueryChanged,
-    this.hintText = 'Cerca serie o film...',
+    this.hintText,
   });
 
   @override
@@ -55,8 +57,13 @@ class _DebouncedSearchFieldState extends State<DebouncedSearchField> {
     return TextField(
       controller: _controller,
       decoration: InputDecoration(
-        hintText: widget.hintText,
-        border: InputBorder.none,
+        hintText: widget.hintText ?? AppLocalizations.of(context)!.searchHint,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(24),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        isDense: true,
         suffixIcon: _controller.text.isEmpty
             ? null
             : IconButton(icon: const Icon(Icons.clear), onPressed: _clear),
