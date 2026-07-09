@@ -3,10 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
 import 'auth/auth_service.dart';
 import 'config/env.dart';
+import 'config/locale_controller.dart';
 import 'data/firestore/device_token_repository.dart';
 import 'data/firestore/user_profile_repository.dart';
 import 'firebase_options.dart';
@@ -15,6 +17,12 @@ import 'notifications/notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  final prefs = await SharedPreferences.getInstance();
+  final localeController = await LocaleController.load(
+    prefs: prefs,
+    deviceLocale: WidgetsBinding.instance.platformDispatcher.locale,
+  );
 
   final googleAuth = GoogleSignInTokenProvider(GoogleSignIn.instance);
   await googleAuth.initialize(
@@ -66,6 +74,7 @@ void main() async {
     EpisodesTrackerApp(
       authService: authService,
       notificationService: notificationService,
+      localeController: localeController,
     ),
   );
 }

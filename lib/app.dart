@@ -7,9 +7,11 @@ import 'package:http/http.dart' as http;
 
 import 'auth/auth_service.dart';
 import 'config/env.dart';
+import 'config/locale_controller.dart';
 import 'data/firestore/watched_repository.dart';
 import 'data/firestore/watchlist_repository.dart';
 import 'data/tmdb_client.dart';
+import 'l10n/app_localizations.dart';
 import 'notifications/notification_service.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
@@ -20,11 +22,13 @@ import 'updates/update_checker.dart';
 class EpisodesTrackerApp extends StatefulWidget {
   final AuthService authService;
   final NotificationService notificationService;
+  final LocaleController localeController;
 
   const EpisodesTrackerApp({
     super.key,
     required this.authService,
     required this.notificationService,
+    required this.localeController,
   });
 
   @override
@@ -67,45 +71,56 @@ class _EpisodesTrackerAppState extends State<EpisodesTrackerApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Episodes Tracker',
-      scaffoldMessengerKey: _scaffoldMessengerKey,
-      theme: AppTheme.dark,
-      home: UpdateBanner(
-        updateChecker: UpdateChecker(
-          httpClient: http.Client(),
-          owner: Env.githubReleasesOwner,
-          repo: Env.githubReleasesRepo,
-        ),
-        child: StreamBuilder(
-          stream: widget.authService.authStateChanges,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
-            final user = snapshot.data;
-            if (user == null) {
-              return LoginScreen(authService: widget.authService);
-            }
+    return ValueListenableBuilder<Locale>(
+      valueListenable: widget.localeController,
+      builder: (context, locale, _) {
+        return MaterialApp(
+          title: 'Episodes Tracker',
+          scaffoldMessengerKey: _scaffoldMessengerKey,
+          theme: AppTheme.dark,
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: LocaleControllerScope(
+            controller: widget.localeController,
+            child: UpdateBanner(
+              updateChecker: UpdateChecker(
+                httpClient: http.Client(),
+                owner: Env.githubReleasesOwner,
+                repo: Env.githubReleasesRepo,
+              ),
+              child: StreamBuilder(
+                stream: widget.authService.authStateChanges,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Scaffold(
+                      body: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  final user = snapshot.data;
+                  if (user == null) {
+                    return LoginScreen(authService: widget.authService);
+                  }
 
-            final firestore = FirebaseFirestore.instance;
-            return HomeShell(
-              authService: widget.authService,
-              tmdbClient: _tmdbClient,
-              watchlistRepository: WatchlistRepository(
-                firestore: firestore,
-                uid: user.uid,
+                  final firestore = FirebaseFirestore.instance;
+                  return HomeShell(
+                    authService: widget.authService,
+                    tmdbClient: _tmdbClient,
+                    watchlistRepository: WatchlistRepository(
+                      firestore: firestore,
+                      uid: user.uid,
+                    ),
+                    watchedRepository: WatchedRepository(
+                      firestore: firestore,
+                      uid: user.uid,
+                    ),
+                  );
+                },
               ),
-              watchedRepository: WatchedRepository(
-                firestore: firestore,
-                uid: user.uid,
-              ),
-            );
-          },
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
