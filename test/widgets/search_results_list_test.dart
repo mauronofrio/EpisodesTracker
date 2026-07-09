@@ -10,6 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
+import '../support/localized_test_app.dart';
+
 http.Response _searchResponse(String query) {
   return http.Response(
     jsonEncode({
@@ -56,7 +58,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: Scaffold(
           body: SearchResultsList(
             query: 'breaking',
@@ -82,7 +84,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: Scaffold(
           body: SearchResultsList(
             query: 'breaking',
@@ -97,7 +99,7 @@ void main() {
     expect(find.text('Breaking Bad'), findsOneWidget);
 
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: Scaffold(
           body: SearchResultsList(
             query: 'nothing-matches',
@@ -123,7 +125,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: Scaffold(
           body: SearchResultsList(
             query: 'breaking',

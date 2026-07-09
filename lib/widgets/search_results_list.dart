@@ -4,6 +4,7 @@ import '../data/firestore/watched_repository.dart';
 import '../data/firestore/watchlist_repository.dart';
 import '../data/models/search_result.dart';
 import '../data/tmdb_client.dart';
+import '../l10n/app_localizations.dart';
 import '../screens/detail_screen.dart';
 import 'poster_list_tile.dart';
 
@@ -70,14 +71,15 @@ class _SearchResultsListState extends State<SearchResultsList> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
-      return Center(child: Text('Errore: $_error'));
+      return Center(child: Text(l10n.errorPrefix(_error.toString())));
     }
     if (_results.isEmpty) {
-      return const Center(child: Text('Nessun risultato'));
+      return Center(child: Text(l10n.noResults));
     }
     return ListView.builder(
       itemCount: _results.length,
@@ -86,7 +88,9 @@ class _SearchResultsListState extends State<SearchResultsList> {
         return PosterListTile(
           posterPath: result.posterPath,
           title: result.title,
-          subtitle: result.mediaType == MediaType.tv ? 'Serie TV' : 'Film',
+          subtitle: result.mediaType == MediaType.tv
+              ? l10n.mediaTypeTv
+              : l10n.mediaTypeMovie,
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
