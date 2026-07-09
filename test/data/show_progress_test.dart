@@ -429,4 +429,37 @@ void main() {
       expect(airedEpisodeNumbers(episodes), [1]);
     });
   });
+
+  group('hasAired', () {
+    Episode episodeWithAirDate(DateTime? airDate) => Episode(
+      id: 1,
+      name: 'E1',
+      overview: '',
+      airDate: airDate,
+      episodeNumber: 1,
+      seasonNumber: 1,
+      stillPath: null,
+    );
+
+    test('true for a past air date', () {
+      expect(hasAired(episodeWithAirDate(DateTime(2020, 1, 1))), isTrue);
+    });
+
+    test('true for today', () {
+      final now = DateTime.now();
+      expect(
+        hasAired(episodeWithAirDate(DateTime(now.year, now.month, now.day))),
+        isTrue,
+      );
+    });
+
+    test('false for a future air date', () {
+      final farFuture = DateTime.now().add(const Duration(days: 365));
+      expect(hasAired(episodeWithAirDate(farFuture)), isFalse);
+    });
+
+    test('false for a null air date', () {
+      expect(hasAired(episodeWithAirDate(null)), isFalse);
+    });
+  });
 }

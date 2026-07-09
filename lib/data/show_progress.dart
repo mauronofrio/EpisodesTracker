@@ -44,9 +44,6 @@ Future<ShowProgress> computeShowProgress({
   required WatchedRepository watchedRepository,
   required TvShowDetails show,
 }) async {
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-
   final seasonEpisodeLists = await Future.wait(
     show.seasons.map(
       (season) => fetchOrNull(
@@ -57,7 +54,7 @@ Future<ShowProgress> computeShowProgress({
 
   final airedEpisodes =
       seasonEpisodeLists.whereType<List<Episode>>().expand((e) => e).where(
-        (e) => e.airDate != null && !e.airDate!.isAfter(today),
+        hasAired,
       ).toList()..sort((a, b) {
         final seasonCompare = a.seasonNumber.compareTo(b.seasonNumber);
         if (seasonCompare != 0) return seasonCompare;
@@ -98,14 +95,19 @@ Future<ShowProgress> computeShowProgress({
   );
 }
 
-/// Episode numbers from [episodes] that have already aired (non-null air
-/// date, not in the future). Shared by any caller that needs to mark a
-/// whole season watched without including unaired episodes.
-List<int> airedEpisodeNumbers(List<Episode> episodes) {
+/// True if [episode] has a known air date that isn't in the future. An
+/// episode can't be "watched" (or rewatched) before it has aired.
+bool hasAired(Episode episode) {
+  final airDate = episode.airDate;
+  if (airDate == null) return false;
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
-  return episodes
-      .where((e) => e.airDate != null && !e.airDate!.isAfter(today))
-      .map((e) => e.episodeNumber)
-      .toList();
+  return !airDate.isAfter(today);
+}
+
+/// Episode numbers from [episodes] that have already aired. Shared by any
+/// caller that needs to mark a whole season watched without including
+/// unaired episodes.
+List<int> airedEpisodeNumbers(List<Episode> episodes) {
+  return episodes.where(hasAired).map((e) => e.episodeNumber).toList();
 }

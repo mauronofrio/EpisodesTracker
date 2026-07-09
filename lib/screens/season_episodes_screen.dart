@@ -128,13 +128,18 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
                   );
                   final isWatched = watched.containsKey(id);
                   final isRewatched = watched[id] ?? false;
+                  final aired = hasAired(episode);
                   return CheckboxListTile(
                     value: isWatched,
                     controlAffinity: ListTileControlAffinity.leading,
                     title: Text('${episode.episodeNumber}. ${episode.name}'),
-                    subtitle: episode.airDate == null
-                        ? null
-                        : Text(DateFormat('yyyy-MM-dd').format(episode.airDate!)),
+                    subtitle: Text(
+                      episode.airDate == null
+                          ? 'Data di uscita sconosciuta'
+                          : aired
+                          ? DateFormat('yyyy-MM-dd').format(episode.airDate!)
+                          : '${DateFormat('yyyy-MM-dd').format(episode.airDate!)} · non ancora uscito',
+                    ),
                     secondary: IconButton(
                       icon: Icon(
                         Icons.replay_circle_filled,
@@ -147,7 +152,9 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
                           ? () => _toggleRewatched(id, !isRewatched)
                           : null,
                     ),
-                    onChanged: (checked) => _toggleWatched(id, checked == true),
+                    onChanged: aired
+                        ? (checked) => _toggleWatched(id, checked == true)
+                        : null,
                   );
                 },
               );
