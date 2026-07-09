@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../auth/auth_service.dart';
+import '../l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   final AuthService authService;
@@ -22,9 +23,10 @@ class _LoginScreenState extends State<LoginScreen> {
       // User dismissed the sign-in UI; nothing to show.
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Accesso non riuscito: $e')));
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.signInFailed(e.toString()))),
+      );
     } finally {
       if (mounted) setState(() => _isSigningIn = false);
     }
@@ -33,6 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: Center(
         child: Padding(
@@ -43,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Icon(Icons.live_tv, size: 72, color: colorScheme.primary),
               const SizedBox(height: 16),
               Text(
+                // Brand name - not translated, same in both languages.
                 'Episodes Tracker',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
@@ -50,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Serie e film che segui, in un unico posto.',
+                l10n.tagline,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -63,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 FilledButton.icon(
                   onPressed: _handleSignIn,
                   icon: const Icon(Icons.login),
-                  label: const Text('Accedi con Google'),
+                  label: Text(l10n.signInWithGoogle),
                 ),
             ],
           ),
