@@ -5,11 +5,11 @@ import '../data/firestore/watched_repository.dart';
 import '../data/firestore/watchlist_repository.dart';
 import '../data/tmdb_client.dart';
 import 'calendar_screen.dart';
-import 'search_screen.dart';
 import 'watchlist_screen.dart';
 
-/// Bottom-navigation shell shown once the user is signed in: Search,
-/// Watchlist, Calendar.
+/// Bottom-navigation shell shown once the user is signed in: Watchlist,
+/// Calendar. Each tab has its own search bar in the AppBar (see
+/// DebouncedSearchField) instead of a separate dedicated search tab.
 class HomeShell extends StatefulWidget {
   final AuthService authService;
   final TmdbClient tmdbClient;
@@ -34,12 +34,6 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      SearchScreen(
-        authService: widget.authService,
-        tmdbClient: widget.tmdbClient,
-        watchlistRepository: widget.watchlistRepository,
-        watchedRepository: widget.watchedRepository,
-      ),
       WatchlistScreen(
         authService: widget.authService,
         tmdbClient: widget.tmdbClient,
@@ -60,7 +54,6 @@ class _HomeShellState extends State<HomeShell> {
         selectedIndex: _index,
         onDestinationSelected: (index) => setState(() => _index = index),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.search), label: 'Cerca'),
           NavigationDestination(
             icon: Icon(Icons.bookmark),
             label: 'Watchlist',

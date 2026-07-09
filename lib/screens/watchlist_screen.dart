@@ -9,11 +9,13 @@ import '../data/models/tv_show_details.dart';
 import '../data/resilient_fetch.dart';
 import '../data/show_progress.dart';
 import '../data/tmdb_client.dart';
+import '../widgets/debounced_search_field.dart';
 import '../widgets/poster_list_tile.dart';
+import '../widgets/search_results_list.dart';
 import '../widgets/sign_out_button.dart';
 import 'detail_screen.dart';
 
-class WatchlistScreen extends StatelessWidget {
+class WatchlistScreen extends StatefulWidget {
   final AuthService authService;
   final TmdbClient tmdbClient;
   final WatchlistRepository watchlistRepository;
@@ -28,31 +30,48 @@ class WatchlistScreen extends StatelessWidget {
   });
 
   @override
+  State<WatchlistScreen> createState() => _WatchlistScreenState();
+}
+
+class _WatchlistScreenState extends State<WatchlistScreen> {
+  String _query = '';
+
+  @override
   Widget build(BuildContext context) {
+    final searching = _query.isNotEmpty;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Watchlist'),
-          actions: [SignOutButton(authService: authService)],
-          bottom: const TabBar(
-            tabs: [Tab(text: 'Serie'), Tab(text: 'Film')],
+          title: DebouncedSearchField(
+            onQueryChanged: (query) => setState(() => _query = query),
           ),
+          actions: [SignOutButton(authService: widget.authService)],
+          bottom: searching
+              ? null
+              : const TabBar(tabs: [Tab(text: 'Serie'), Tab(text: 'Film')]),
         ),
-        body: TabBarView(
-          children: [
-            _WatchlistShowsTab(
-              tmdbClient: tmdbClient,
-              watchlistRepository: watchlistRepository,
-              watchedRepository: watchedRepository,
-            ),
-            _WatchlistMoviesTab(
-              tmdbClient: tmdbClient,
-              watchlistRepository: watchlistRepository,
-              watchedRepository: watchedRepository,
-            ),
-          ],
-        ),
+        body: searching
+            ? SearchResultsList(
+                query: _query,
+                tmdbClient: widget.tmdbClient,
+                watchlistRepository: widget.watchlistRepository,
+                watchedRepository: widget.watchedRepository,
+              )
+            : TabBarView(
+                children: [
+                  _WatchlistShowsTab(
+                    tmdbClient: widget.tmdbClient,
+                    watchlistRepository: widget.watchlistRepository,
+                    watchedRepository: widget.watchedRepository,
+                  ),
+                  _WatchlistMoviesTab(
+                    tmdbClient: widget.tmdbClient,
+                    watchlistRepository: widget.watchlistRepository,
+                    watchedRepository: widget.watchedRepository,
+                  ),
+                ],
+              ),
       ),
     );
   }

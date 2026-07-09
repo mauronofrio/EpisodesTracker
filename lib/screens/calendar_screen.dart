@@ -9,7 +9,9 @@ import '../data/models/search_result.dart';
 import '../data/models/tv_show_details.dart';
 import '../data/resilient_fetch.dart';
 import '../data/tmdb_client.dart';
+import '../widgets/debounced_search_field.dart';
 import '../widgets/poster_list_tile.dart';
+import '../widgets/search_results_list.dart';
 import '../widgets/sign_out_button.dart';
 import 'detail_screen.dart';
 
@@ -51,6 +53,7 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   Future<List<_UpcomingItem>>? _future;
+  String _query = '';
 
   @override
   void initState() {
@@ -119,50 +122,60 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final searching = _query.isNotEmpty;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calendario'),
+        title: DebouncedSearchField(
+          onQueryChanged: (query) => setState(() => _query = query),
+        ),
         actions: [SignOutButton(authService: widget.authService)],
       ),
-      body: FutureBuilder<List<_UpcomingItem>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Errore: ${snapshot.error}'));
-          }
-          final items = snapshot.data!;
-          if (items.isEmpty) {
-            return const Center(
-              child: Text('Nessuna uscita imminente per la tua watchlist'),
-            );
-          }
-          return ListView.builder(
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return PosterListTile(
-                posterPath: item.posterPath,
-                title: item.title,
-                subtitle: '${_formatDate(item.date)} • ${item.subtitle}',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => DetailScreen(
-                      tmdbId: item.tmdbId,
-                      mediaType: item.mediaType,
-                      tmdbClient: widget.tmdbClient,
-                      watchlistRepository: widget.watchlistRepository,
-                      watchedRepository: widget.watchedRepository,
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
+      body: searching
+          ? SearchResultsList(
+              query: _query,
+              tmdbClient: widget.tmdbClient,
+              watchlistRepository: widget.watchlistRepository,
+              watchedRepository: widget.watchedRepository,
+            )
+          : FutureBuilder<List<_UpcomingItem>>(
+              future: _future,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Errore: ${snapshot.error}'));
+                }
+                final items = snapshot.data!;
+                if (items.isEmpty) {
+                  return const Center(
+                    child: Text('Nessuna uscita imminente per la tua watchlist'),
+                  );
+                }
+                return ListView.builder(
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return PosterListTile(
+                      posterPath: item.posterPath,
+                      title: item.title,
+                      subtitle: '${_formatDate(item.date)} • ${item.subtitle}',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => DetailScreen(
+                            tmdbId: item.tmdbId,
+                            mediaType: item.mediaType,
+                            tmdbClient: widget.tmdbClient,
+                            watchlistRepository: widget.watchlistRepository,
+                            watchedRepository: widget.watchedRepository,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
     );
   }
 }
