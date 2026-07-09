@@ -194,9 +194,17 @@ class _DetailScreenState extends State<DetailScreen> {
       return Scaffold(body: Center(child: Text('Errore: $_error')));
     }
 
-    final title = _showDetails?.name ?? _movieDetails!.title;
-    final overview = _showDetails?.overview ?? _movieDetails!.overview;
-    final posterPath = _showDetails?.posterPath ?? _movieDetails!.posterPath;
+    // Exactly one of these is populated at this point (widget.mediaType
+    // determines which, per _load()). Using `??` here would be wrong: a
+    // real, legitimately-null field on the loaded entity (e.g. a show
+    // with no poster on TMDB) must not fall through to the other
+    // entity's (nonexistent) data.
+    final isTv = widget.mediaType == MediaType.tv;
+    final title = isTv ? _showDetails!.name : _movieDetails!.title;
+    final overview = isTv ? _showDetails!.overview : _movieDetails!.overview;
+    final posterPath = isTv
+        ? _showDetails!.posterPath
+        : _movieDetails!.posterPath;
     final showIsComplete =
         _showDetails != null &&
         (_progress?.isShowComplete(_showDetails!.seasons) ?? false);
@@ -284,6 +292,17 @@ class _DetailScreenState extends State<DetailScreen> {
                     trailing: FilledButton(
                       onPressed: () => _markNextEpisodeWatched(next),
                       child: const Text('Segna visto'),
+                    ),
+                  ),
+                )
+              else if (_showDetails!.nextEpisodeToAir case final upcoming?)
+                Card(
+                  child: ListTile(
+                    title: const Text('Sei aggiornato'),
+                    subtitle: Text(
+                      'Prossimo episodio: S${upcoming.seasonNumber.toString().padLeft(2, '0')}'
+                      'E${upcoming.episodeNumber.toString().padLeft(2, '0')} - ${upcoming.name}'
+                      '${upcoming.airDate == null ? '' : ' (${DateFormat('yyyy-MM-dd').format(upcoming.airDate!)})'}',
                     ),
                   ),
                 )

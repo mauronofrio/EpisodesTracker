@@ -120,4 +120,73 @@ void main() {
       expect(find.textContaining('Errore'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'shows the upcoming episode when caught up but TMDB has one scheduled',
+    (tester) async {
+      final mockClient = MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'id': 94997,
+            'name': 'House of the Dragon',
+            'overview': 'Targaryen civil war.',
+            'poster_path': null,
+            'backdrop_path': null,
+            'number_of_seasons': 0,
+            'number_of_episodes': 0,
+            'status': 'Returning Series',
+            // No aired-but-unwatched episode (no seasons listed at all
+            // here, so computeShowProgress's nextToWatch is null), but
+            // TMDB still reports a scheduled next episode.
+            'next_episode_to_air': {
+              'id': 7196567,
+              'name': 'Episode 4',
+              'overview': '',
+              'air_date': '2026-07-19',
+              'episode_number': 4,
+              'season_number': 3,
+            },
+            'last_episode_to_air': null,
+            'seasons': [],
+          }),
+          200,
+        ),
+      );
+      final tmdbClient = TmdbClient(
+        httpClient: mockClient,
+        readAccessToken: 'test-token',
+      );
+      final watchlistRepository = MockWatchlistRepository();
+      when(
+        () => watchlistRepository.isShowInWatchlist(94997),
+      ).thenAnswer((_) async => false);
+      final watchedRepository = WatchedRepository(
+        firestore: FakeFirebaseFirestore(),
+        uid: 'user-1',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DetailScreen(
+            tmdbId: 94997,
+            mediaType: MediaType.tv,
+            tmdbClient: tmdbClient,
+            watchlistRepository: watchlistRepository,
+            watchedRepository: watchedRepository,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sei aggiornato'), findsOneWidget);
+      expect(
+        find.text('Prossimo episodio: S03E04 - Episode 4 (2026-07-19)'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Sei aggiornato con tutti gli episodi usciti'),
+        findsNothing,
+      );
+    },
+  );
 }
