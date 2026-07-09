@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../data/firestore/watched_repository.dart';
 import '../data/models/episode.dart';
@@ -34,6 +35,21 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
       widget.showId,
       widget.seasonNumber,
     );
+  }
+
+  Future<void> _toggleWatched(WatchedEpisodeId id, bool checked) async {
+    try {
+      if (checked) {
+        await widget.watchedRepository.markEpisodeWatched(id);
+      } else {
+        await widget.watchedRepository.markEpisodeUnwatched(id);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+    }
   }
 
   @override
@@ -73,16 +89,8 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
                     title: Text('${episode.episodeNumber}. ${episode.name}'),
                     subtitle: episode.airDate == null
                         ? null
-                        : Text(
-                            '${episode.airDate!.year}-${episode.airDate!.month.toString().padLeft(2, '0')}-${episode.airDate!.day.toString().padLeft(2, '0')}',
-                          ),
-                    onChanged: (checked) {
-                      if (checked == true) {
-                        widget.watchedRepository.markEpisodeWatched(id);
-                      } else {
-                        widget.watchedRepository.markEpisodeUnwatched(id);
-                      }
-                    },
+                        : Text(DateFormat('yyyy-MM-dd').format(episode.airDate!)),
+                    onChanged: (checked) => _toggleWatched(id, checked == true),
                   );
                 },
               );

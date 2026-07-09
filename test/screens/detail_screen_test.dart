@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:episodes_tracker/data/firestore/watched_repository.dart';
 import 'package:episodes_tracker/data/firestore/watchlist_repository.dart';
@@ -10,6 +11,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockWatchlistRepository extends Mock implements WatchlistRepository {}
 
 void main() {
   testWidgets(
@@ -53,6 +57,67 @@ void main() {
 
       // Before the fix, this throws "setState() called after dispose()".
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'reverts the optimistic watchlist toggle and shows an error when the write fails',
+    (tester) async {
+      final mockClient = MockClient(
+        (request) async => http.Response(
+          jsonEncode({
+            'id': 550,
+            'title': 'Fight Club',
+            'overview': 'An insomniac office worker...',
+            'poster_path': null,
+            'backdrop_path': null,
+            'release_date': '1999-10-15',
+            'runtime': 139,
+            'status': 'Released',
+          }),
+          200,
+        ),
+      );
+      final tmdbClient = TmdbClient(
+        httpClient: mockClient,
+        readAccessToken: 'test-token',
+      );
+      final watchlistRepository = MockWatchlistRepository();
+      when(
+        () => watchlistRepository.isMovieInWatchlist(550),
+      ).thenAnswer((_) async => false);
+      when(
+        () => watchlistRepository.addMovie(550),
+      ).thenThrow(Exception('offline'));
+      final watchedRepository = WatchedRepository(
+        firestore: FakeFirebaseFirestore(),
+        uid: 'user-1',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DetailScreen(
+            tmdbId: 550,
+            mediaType: MediaType.movie,
+            tmdbClient: tmdbClient,
+            watchlistRepository: watchlistRepository,
+            watchedRepository: watchedRepository,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aggiungi a watchlist'), findsOneWidget);
+
+      await tester.tap(find.text('Aggiungi a watchlist'));
+      await tester.pumpAndSettle();
+
+      // The optimistic flip to "Nella watchlist" is reverted once the
+      // write fails, and the failure is surfaced instead of silently
+      // leaving the UI stuck on the wrong (never-persisted) state.
+      expect(find.text('Aggiungi a watchlist'), findsOneWidget);
+      expect(find.text('Nella watchlist'), findsNothing);
+      expect(find.textContaining('Errore'), findsOneWidget);
     },
   );
 }

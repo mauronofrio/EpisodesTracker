@@ -85,23 +85,39 @@ class _DetailScreenState extends State<DetailScreen> {
   Future<void> _toggleWatchlist() async {
     final adding = !_inWatchlist;
     setState(() => _inWatchlist = adding);
-    if (widget.mediaType == MediaType.tv) {
-      await (adding
-          ? widget.watchlistRepository.addShow(widget.tmdbId)
-          : widget.watchlistRepository.removeShow(widget.tmdbId));
-    } else {
-      await (adding
-          ? widget.watchlistRepository.addMovie(widget.tmdbId)
-          : widget.watchlistRepository.removeMovie(widget.tmdbId));
+    try {
+      if (widget.mediaType == MediaType.tv) {
+        await (adding
+            ? widget.watchlistRepository.addShow(widget.tmdbId)
+            : widget.watchlistRepository.removeShow(widget.tmdbId));
+      } else {
+        await (adding
+            ? widget.watchlistRepository.addMovie(widget.tmdbId)
+            : widget.watchlistRepository.removeMovie(widget.tmdbId));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _inWatchlist = !adding);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
     }
   }
 
   Future<void> _toggleMovieWatched() async {
     final watching = !_isWatched;
     setState(() => _isWatched = watching);
-    await (watching
-        ? widget.watchedRepository.markMovieWatched(widget.tmdbId)
-        : widget.watchedRepository.markMovieUnwatched(widget.tmdbId));
+    try {
+      await (watching
+          ? widget.watchedRepository.markMovieWatched(widget.tmdbId)
+          : widget.watchedRepository.markMovieUnwatched(widget.tmdbId));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isWatched = !watching);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+    }
   }
 
   @override
