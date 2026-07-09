@@ -7,6 +7,7 @@ import '../data/models/movie_details.dart';
 import '../data/models/search_result.dart';
 import '../data/models/tv_show_details.dart';
 import '../data/resilient_fetch.dart';
+import '../data/show_progress.dart';
 import '../data/tmdb_client.dart';
 import '../widgets/poster_list_tile.dart';
 import '../widgets/sign_out_button.dart';
@@ -93,21 +94,34 @@ class _WatchlistShowsTab extends StatelessWidget {
               itemCount: shows.length,
               itemBuilder: (context, index) {
                 final show = shows[index];
-                return PosterListTile(
-                  posterPath: show.posterPath,
-                  title: show.name,
-                  subtitle: '${show.numberOfSeasons} stagioni • ${show.status}',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => DetailScreen(
-                        tmdbId: show.id,
-                        mediaType: MediaType.tv,
-                        tmdbClient: tmdbClient,
-                        watchlistRepository: watchlistRepository,
-                        watchedRepository: watchedRepository,
-                      ),
-                    ),
+                return FutureBuilder<ShowProgress>(
+                  future: computeShowProgress(
+                    tmdbClient: tmdbClient,
+                    watchedRepository: watchedRepository,
+                    show: show,
                   ),
+                  builder: (context, progressSnapshot) {
+                    final progress = progressSnapshot.data;
+                    final subtitle = progress == null
+                        ? show.status
+                        : '${progress.watchedCount}/${progress.airedCount} episodi visti';
+                    return PosterListTile(
+                      posterPath: show.posterPath,
+                      title: show.name,
+                      subtitle: subtitle,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => DetailScreen(
+                            tmdbId: show.id,
+                            mediaType: MediaType.tv,
+                            tmdbClient: tmdbClient,
+                            watchlistRepository: watchlistRepository,
+                            watchedRepository: watchedRepository,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             );

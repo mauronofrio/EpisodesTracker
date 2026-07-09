@@ -30,7 +30,61 @@ void main() {
 
       final watched = await repository.watchedEpisodeIdsForShow(1399).first;
       expect(watched, hasLength(1));
-      expect(watched.first.showId, 1399);
+      expect(watched.keys.first.showId, 1399);
+    });
+
+    test('a newly-watched episode defaults to not rewatched', () async {
+      final id = const WatchedEpisodeId(showId: 1399, season: 1, episode: 1);
+      await repository.markEpisodeWatched(id);
+
+      final watched = await repository.watchedEpisodeIdsForShow(1399).first;
+      expect(watched[id], isFalse);
+    });
+
+    test('setEpisodeRewatched sets and unsets the flag without touching watchedAt', () async {
+      final id = const WatchedEpisodeId(showId: 1399, season: 1, episode: 1);
+      await repository.markEpisodeWatched(id);
+
+      await repository.setEpisodeRewatched(id, true);
+      var watched = await repository.watchedEpisodeIdsForShow(1399).first;
+      expect(watched[id], isTrue);
+
+      await repository.setEpisodeRewatched(id, false);
+      watched = await repository.watchedEpisodeIdsForShow(1399).first;
+      expect(watched[id], isFalse);
+    });
+
+    test('markEpisodeUnwatched clears the rewatched flag along with the episode', () async {
+      final id = const WatchedEpisodeId(showId: 1399, season: 1, episode: 1);
+      await repository.markEpisodeWatched(id);
+      await repository.setEpisodeRewatched(id, true);
+      await repository.markEpisodeUnwatched(id);
+      await repository.markEpisodeWatched(id);
+
+      final watched = await repository.watchedEpisodeIdsForShow(1399).first;
+      expect(watched[id], isFalse);
+    });
+
+    test('markSeasonWatched marks every given episode number as watched', () async {
+      await repository.markSeasonWatched(1399, 1, [1, 2, 3]);
+
+      final watched = await repository.watchedEpisodeIdsForShow(1399).first;
+      expect(watched.keys, containsAll([
+        const WatchedEpisodeId(showId: 1399, season: 1, episode: 1),
+        const WatchedEpisodeId(showId: 1399, season: 1, episode: 2),
+        const WatchedEpisodeId(showId: 1399, season: 1, episode: 3),
+      ]));
+    });
+
+    test('markSeasonWatched only marks the episode numbers passed in (caller filters unaired ones)', () async {
+      await repository.markSeasonWatched(1399, 1, [1, 2]);
+
+      final watched = await repository.watchedEpisodeIdsForShow(1399).first;
+      expect(watched, hasLength(2));
+      expect(
+        watched.keys,
+        isNot(contains(const WatchedEpisodeId(showId: 1399, season: 1, episode: 3))),
+      );
     });
 
     test('markEpisodeUnwatched removes it', () async {
@@ -68,7 +122,7 @@ void main() {
 
         expect(watched, hasLength(1));
         expect(
-          watched.first,
+          watched.keys.first,
           const WatchedEpisodeId(showId: 1399, season: 1, episode: 1),
         );
       },

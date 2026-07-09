@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../data/firestore/watched_repository.dart';
 import '../data/firestore/watchlist_repository.dart';
+import '../data/models/episode.dart';
 import '../data/models/movie_details.dart';
 import '../data/models/search_result.dart';
 import '../data/models/tv_show_details.dart';
+import '../data/show_progress.dart';
 import '../data/tmdb_client.dart';
 import 'season_episodes_screen.dart';
 
@@ -35,6 +38,7 @@ class _DetailScreenState extends State<DetailScreen> {
   Object? _error;
   bool _inWatchlist = false;
   bool _isWatched = false;
+  ShowProgress? _progress;
 
   @override
   void initState() {
@@ -56,6 +60,7 @@ class _DetailScreenState extends State<DetailScreen> {
           _inWatchlist = inWatchlist;
           _loading = false;
         });
+        await _refreshProgress();
       } else {
         final details = await widget.tmdbClient.getMovieDetails(
           widget.tmdbId,
@@ -114,6 +119,43 @@ class _DetailScreenState extends State<DetailScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isWatched = !watching);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+    }
+  }
+
+  /// Recomputes watched/aired counts and the next episode to watch. Runs
+  /// after the initial load and after marking the next episode watched.
+  /// Best-effort: a failure here (e.g. one season's TMDB call failing)
+  /// shouldn't block the rest of the detail screen from working.
+  Future<void> _refreshProgress() async {
+    final show = _showDetails;
+    if (show == null) return;
+    try {
+      final progress = await computeShowProgress(
+        tmdbClient: widget.tmdbClient,
+        watchedRepository: widget.watchedRepository,
+        show: show,
+      );
+      if (!mounted) return;
+      setState(() => _progress = progress);
+    } catch (_) {
+      // Leave the previous (or null) progress in place.
+    }
+  }
+
+  Future<void> _markNextEpisodeWatched(Episode episode) async {
+    final id = WatchedEpisodeId(
+      showId: widget.tmdbId,
+      season: episode.seasonNumber,
+      episode: episode.episodeNumber,
+    );
+    try {
+      await widget.watchedRepository.markEpisodeWatched(id);
+      await _refreshProgress();
+    } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Errore: $e')));
@@ -189,7 +231,32 @@ class _DetailScreenState extends State<DetailScreen> {
           const SizedBox(height: 16),
           Text(overview),
           if (_showDetails != null) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            if (_progress case final progress?) ...[
+              Text(
+                '${progress.watchedCount}/${progress.airedCount} episodi visti',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              if (progress.nextToWatch case final next?)
+                Card(
+                  child: ListTile(
+                    title: const Text('Prossimo episodio'),
+                    subtitle: Text(
+                      'S${next.seasonNumber.toString().padLeft(2, '0')}'
+                      'E${next.episodeNumber.toString().padLeft(2, '0')} - ${next.name}'
+                      '${next.airDate == null ? '' : ' (${DateFormat('yyyy-MM-dd').format(next.airDate!)})'}',
+                    ),
+                    trailing: FilledButton(
+                      onPressed: () => _markNextEpisodeWatched(next),
+                      child: const Text('Segna visto'),
+                    ),
+                  ),
+                )
+              else
+                const Text('Sei aggiornato con tutti gli episodi usciti'),
+            ],
+            const SizedBox(height: 16),
             Text(
               'Stagioni',
               style: Theme.of(context).textTheme.titleMedium,
