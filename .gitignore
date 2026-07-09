@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .env
+
+# Local working notes, not meant to be shared/versioned
+PROGRESS.md
