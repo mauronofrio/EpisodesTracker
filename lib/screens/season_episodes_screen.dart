@@ -5,6 +5,7 @@ import '../data/firestore/watched_repository.dart';
 import '../data/models/episode.dart';
 import '../data/show_progress.dart';
 import '../data/tmdb_client.dart';
+import '../l10n/app_localizations.dart';
 
 class SeasonEpisodesScreen extends StatefulWidget {
   final int showId;
@@ -54,9 +55,10 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
+      );
     }
   }
 
@@ -65,9 +67,10 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
       await widget.watchedRepository.setEpisodeRewatched(id, rewatched);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
+      );
     }
   }
 
@@ -82,21 +85,23 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.showName} - Stagione ${widget.seasonNumber}'),
+        title: Text(l10n.seasonAppBarTitle(widget.showName, widget.seasonNumber)),
         actions: [
           IconButton(
             icon: const Icon(Icons.playlist_add_check),
-            tooltip: 'Segna stagione vista',
+            tooltip: l10n.markSeasonWatched,
             onPressed: _loadedEpisodes == null ? null : _markSeasonWatched,
           ),
         ],
@@ -108,7 +113,9 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Errore: ${snapshot.error}'));
+            return Center(
+              child: Text(l10n.errorPrefix(snapshot.error.toString())),
+            );
           }
           final episodes = snapshot.data!;
           return StreamBuilder<Map<WatchedEpisodeId, bool>>(
@@ -135,10 +142,12 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
                     title: Text('${episode.episodeNumber}. ${episode.name}'),
                     subtitle: Text(
                       episode.airDate == null
-                          ? 'Data di uscita sconosciuta'
+                          ? l10n.unknownAirDate
                           : aired
                           ? DateFormat('yyyy-MM-dd').format(episode.airDate!)
-                          : '${DateFormat('yyyy-MM-dd').format(episode.airDate!)} · non ancora uscito',
+                          : l10n.notYetAiredDate(
+                              DateFormat('yyyy-MM-dd').format(episode.airDate!),
+                            ),
                     ),
                     secondary: IconButton(
                       icon: Icon(
@@ -147,7 +156,7 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
                             ? Theme.of(context).colorScheme.primary
                             : null,
                       ),
-                      tooltip: 'Rivisto',
+                      tooltip: l10n.rewatched,
                       onPressed: isWatched
                           ? () => _toggleRewatched(id, !isRewatched)
                           : null,
