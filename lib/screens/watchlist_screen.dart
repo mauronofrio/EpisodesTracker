@@ -9,11 +9,12 @@ import '../data/models/tv_show_details.dart';
 import '../data/resilient_fetch.dart';
 import '../data/show_progress.dart';
 import '../data/tmdb_client.dart';
+import '../l10n/app_localizations.dart';
+import '../widgets/app_drawer.dart';
 import '../widgets/caught_up_indicator.dart';
 import '../widgets/debounced_search_field.dart';
 import '../widgets/poster_list_tile.dart';
 import '../widgets/search_results_list.dart';
-import '../widgets/sign_out_button.dart';
 import '../widgets/update_indicator_button.dart';
 import 'detail_screen.dart';
 
@@ -51,6 +52,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final searching = _query.isNotEmpty;
     return PopScope(
       canPop: !searching,
@@ -60,7 +62,9 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
+          endDrawer: AppDrawer(authService: widget.authService),
           appBar: AppBar(
+            titleSpacing: 8,
             leading: searching
                 ? IconButton(
                     icon: const Icon(Icons.arrow_back),
@@ -71,16 +75,13 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
               key: ValueKey(_searchFieldGeneration),
               onQueryChanged: (query) => setState(() => _query = query),
             ),
-            actions: [
-              const UpdateIndicatorButton(),
-              SignOutButton(authService: widget.authService),
-            ],
+            actions: const [UpdateIndicatorButton(), AccountMenuButton()],
             bottom: searching
                 ? null
-                : const TabBar(
+                : TabBar(
                     tabs: [
-                      Tab(text: 'Serie'),
-                      Tab(text: 'Film'),
+                      Tab(text: l10n.tabShows),
+                      Tab(text: l10n.tabMovies),
                     ],
                   ),
           ),
@@ -147,12 +148,13 @@ class _WatchlistShowsTabState extends State<_WatchlistShowsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return StreamBuilder<List<int>>(
       stream: widget.watchlistRepository.watchShowIds(),
       builder: (context, idsSnapshot) {
         final ids = idsSnapshot.data ?? [];
         if (ids.isEmpty) {
-          return const Center(child: Text('Nessuna serie in watchlist'));
+          return Center(child: Text(l10n.noShowsInWatchlist));
         }
         return FutureBuilder<List<TvShowDetails?>>(
           future: Future.wait(
@@ -162,7 +164,9 @@ class _WatchlistShowsTabState extends State<_WatchlistShowsTab> {
           ),
           builder: (context, detailsSnapshot) {
             if (detailsSnapshot.hasError) {
-              return Center(child: Text('Errore: ${detailsSnapshot.error}'));
+              return Center(
+                child: Text(l10n.errorPrefix(detailsSnapshot.error.toString())),
+              );
             }
             if (!detailsSnapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
@@ -184,7 +188,10 @@ class _WatchlistShowsTabState extends State<_WatchlistShowsTab> {
                     final progress = progressSnapshot.data;
                     final subtitle = progress == null
                         ? show.status
-                        : '${progress.watchedCount}/${progress.airedCount} episodi visti';
+                        : l10n.watchedCount(
+                            progress.watchedCount,
+                            progress.airedCount,
+                          );
                     final isComplete =
                         progress?.isShowComplete(show.seasons) ?? false;
                     final isCaughtUpButOngoing =
@@ -229,12 +236,13 @@ class _WatchlistMoviesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return StreamBuilder<List<int>>(
       stream: watchlistRepository.watchMovieIds(),
       builder: (context, idsSnapshot) {
         final ids = idsSnapshot.data ?? [];
         if (ids.isEmpty) {
-          return const Center(child: Text('Nessun film in watchlist'));
+          return Center(child: Text(l10n.noMoviesInWatchlist));
         }
         return FutureBuilder<List<MovieDetails?>>(
           future: Future.wait(
@@ -242,7 +250,9 @@ class _WatchlistMoviesTab extends StatelessWidget {
           ),
           builder: (context, detailsSnapshot) {
             if (detailsSnapshot.hasError) {
-              return Center(child: Text('Errore: ${detailsSnapshot.error}'));
+              return Center(
+                child: Text(l10n.errorPrefix(detailsSnapshot.error.toString())),
+              );
             }
             if (!detailsSnapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
