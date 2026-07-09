@@ -307,8 +307,8 @@ class _DetailScreenState extends State<DetailScreen> {
                     const Icon(Icons.chevron_right),
                   ],
                 ),
-                onTap: () {
-                  Navigator.of(context).push(
+                onTap: () async {
+                  await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => SeasonEpisodesScreen(
                         showId: widget.tmdbId,
@@ -319,6 +319,9 @@ class _DetailScreenState extends State<DetailScreen> {
                       ),
                     ),
                   );
+                  // The user may have marked episodes watched/rewatched
+                  // inside the season screen; refresh counts on return.
+                  await _refreshProgress();
                 },
               );
             }),
