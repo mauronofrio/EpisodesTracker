@@ -54,11 +54,19 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   Future<List<_UpcomingItem>>? _future;
   String _query = '';
+  int _searchFieldGeneration = 0;
 
   @override
   void initState() {
     super.initState();
     _future = _loadUpcoming();
+  }
+
+  void _exitSearch() {
+    setState(() {
+      _query = '';
+      _searchFieldGeneration++;
+    });
   }
 
   Future<List<_UpcomingItem>> _loadUpcoming() async {
@@ -70,7 +78,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final items = <_UpcomingItem>[];
 
     final shows = (await Future.wait(
-      showIds.map((id) => fetchOrNull(() => widget.tmdbClient.getTvShowDetails(id))),
+      showIds.map(
+        (id) => fetchOrNull(() => widget.tmdbClient.getTvShowDetails(id)),
+      ),
     )).whereType<TvShowDetails>();
     for (final show in shows) {
       final next = show.nextEpisodeToAir;
@@ -90,7 +100,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
 
     final movies = (await Future.wait(
-      movieIds.map((id) => fetchOrNull(() => widget.tmdbClient.getMovieDetails(id))),
+      movieIds.map(
+        (id) => fetchOrNull(() => widget.tmdbClient.getMovieDetails(id)),
+      ),
     )).whereType<MovieDetails>();
     for (final movie in movies) {
       if (movie.releaseDate == null) continue;
@@ -123,59 +135,75 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final searching = _query.isNotEmpty;
-    return Scaffold(
-      appBar: AppBar(
-        title: DebouncedSearchField(
-          onQueryChanged: (query) => setState(() => _query = query),
+    return PopScope(
+      canPop: !searching,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && searching) _exitSearch();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: searching
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: _exitSearch,
+                )
+              : null,
+          title: DebouncedSearchField(
+            key: ValueKey(_searchFieldGeneration),
+            onQueryChanged: (query) => setState(() => _query = query),
+          ),
+          actions: [SignOutButton(authService: widget.authService)],
         ),
-        actions: [SignOutButton(authService: widget.authService)],
-      ),
-      body: searching
-          ? SearchResultsList(
-              query: _query,
-              tmdbClient: widget.tmdbClient,
-              watchlistRepository: widget.watchlistRepository,
-              watchedRepository: widget.watchedRepository,
-            )
-          : FutureBuilder<List<_UpcomingItem>>(
-              future: _future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Errore: ${snapshot.error}'));
-                }
-                final items = snapshot.data!;
-                if (items.isEmpty) {
-                  return const Center(
-                    child: Text('Nessuna uscita imminente per la tua watchlist'),
-                  );
-                }
-                return ListView.builder(
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return PosterListTile(
-                      posterPath: item.posterPath,
-                      title: item.title,
-                      subtitle: '${_formatDate(item.date)} • ${item.subtitle}',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => DetailScreen(
-                            tmdbId: item.tmdbId,
-                            mediaType: item.mediaType,
-                            tmdbClient: widget.tmdbClient,
-                            watchlistRepository: widget.watchlistRepository,
-                            watchedRepository: widget.watchedRepository,
-                          ),
-                        ),
+        body: searching
+            ? SearchResultsList(
+                query: _query,
+                tmdbClient: widget.tmdbClient,
+                watchlistRepository: widget.watchlistRepository,
+                watchedRepository: widget.watchedRepository,
+              )
+            : FutureBuilder<List<_UpcomingItem>>(
+                future: _future,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Errore: ${snapshot.error}'));
+                  }
+                  final items = snapshot.data!;
+                  if (items.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'Nessuna uscita imminente per la tua watchlist',
                       ),
                     );
-                  },
-                );
-              },
-            ),
+                  }
+                  return ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return PosterListTile(
+                        posterPath: item.posterPath,
+                        title: item.title,
+                        subtitle:
+                            '${_formatDate(item.date)} • ${item.subtitle}',
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => DetailScreen(
+                              tmdbId: item.tmdbId,
+                              mediaType: item.mediaType,
+                              tmdbClient: widget.tmdbClient,
+                              watchlistRepository: widget.watchlistRepository,
+                              watchedRepository: widget.watchedRepository,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+      ),
     );
   }
 }

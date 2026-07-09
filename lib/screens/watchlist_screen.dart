@@ -35,49 +35,78 @@ class WatchlistScreen extends StatefulWidget {
 
 class _WatchlistScreenState extends State<WatchlistScreen> {
   String _query = '';
+  // Bumped to force DebouncedSearchField to rebuild with a fresh, empty
+  // TextEditingController when search is dismissed via the back arrow/
+  // system back (as opposed to the user clearing the field themselves).
+  int _searchFieldGeneration = 0;
+
+  void _exitSearch() {
+    setState(() {
+      _query = '';
+      _searchFieldGeneration++;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final searching = _query.isNotEmpty;
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: DebouncedSearchField(
-            onQueryChanged: (query) => setState(() => _query = query),
+    return PopScope(
+      canPop: !searching,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && searching) _exitSearch();
+      },
+      child: DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          appBar: AppBar(
+            leading: searching
+                ? IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: _exitSearch,
+                  )
+                : null,
+            title: DebouncedSearchField(
+              key: ValueKey(_searchFieldGeneration),
+              onQueryChanged: (query) => setState(() => _query = query),
+            ),
+            actions: [SignOutButton(authService: widget.authService)],
+            bottom: searching
+                ? null
+                : const TabBar(
+                    tabs: [
+                      Tab(text: 'Serie'),
+                      Tab(text: 'Film'),
+                    ],
+                  ),
           ),
-          actions: [SignOutButton(authService: widget.authService)],
-          bottom: searching
-              ? null
-              : const TabBar(tabs: [Tab(text: 'Serie'), Tab(text: 'Film')]),
+          body: searching
+              ? SearchResultsList(
+                  query: _query,
+                  tmdbClient: widget.tmdbClient,
+                  watchlistRepository: widget.watchlistRepository,
+                  watchedRepository: widget.watchedRepository,
+                )
+              : TabBarView(
+                  children: [
+                    _WatchlistShowsTab(
+                      tmdbClient: widget.tmdbClient,
+                      watchlistRepository: widget.watchlistRepository,
+                      watchedRepository: widget.watchedRepository,
+                    ),
+                    _WatchlistMoviesTab(
+                      tmdbClient: widget.tmdbClient,
+                      watchlistRepository: widget.watchlistRepository,
+                      watchedRepository: widget.watchedRepository,
+                    ),
+                  ],
+                ),
         ),
-        body: searching
-            ? SearchResultsList(
-                query: _query,
-                tmdbClient: widget.tmdbClient,
-                watchlistRepository: widget.watchlistRepository,
-                watchedRepository: widget.watchedRepository,
-              )
-            : TabBarView(
-                children: [
-                  _WatchlistShowsTab(
-                    tmdbClient: widget.tmdbClient,
-                    watchlistRepository: widget.watchlistRepository,
-                    watchedRepository: widget.watchedRepository,
-                  ),
-                  _WatchlistMoviesTab(
-                    tmdbClient: widget.tmdbClient,
-                    watchlistRepository: widget.watchlistRepository,
-                    watchedRepository: widget.watchedRepository,
-                  ),
-                ],
-              ),
       ),
     );
   }
 }
 
-class _WatchlistShowsTab extends StatelessWidget {
+class _WatchlistShowsTab extends StatefulWidget {
   final TmdbClient tmdbClient;
   final WatchlistRepository watchlistRepository;
   final WatchedRepository watchedRepository;
@@ -89,9 +118,32 @@ class _WatchlistShowsTab extends StatelessWidget {
   });
 
   @override
+  State<_WatchlistShowsTab> createState() => _WatchlistShowsTabState();
+}
+
+class _WatchlistShowsTabState extends State<_WatchlistShowsTab> {
+  Future<void> _openDetail(BuildContext context, int showId) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DetailScreen(
+          tmdbId: showId,
+          mediaType: MediaType.tv,
+          tmdbClient: widget.tmdbClient,
+          watchlistRepository: widget.watchlistRepository,
+          watchedRepository: widget.watchedRepository,
+        ),
+      ),
+    );
+    // Watched state may have changed inside DetailScreen; rebuild so every
+    // ShowProgress FutureBuilder below re-fetches instead of showing what
+    // was cached before the user navigated away.
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<int>>(
-      stream: watchlistRepository.watchShowIds(),
+      stream: widget.watchlistRepository.watchShowIds(),
       builder: (context, idsSnapshot) {
         final ids = idsSnapshot.data ?? [];
         if (ids.isEmpty) {
@@ -99,7 +151,9 @@ class _WatchlistShowsTab extends StatelessWidget {
         }
         return FutureBuilder<List<TvShowDetails?>>(
           future: Future.wait(
-            ids.map((id) => fetchOrNull(() => tmdbClient.getTvShowDetails(id))),
+            ids.map(
+              (id) => fetchOrNull(() => widget.tmdbClient.getTvShowDetails(id)),
+            ),
           ),
           builder: (context, detailsSnapshot) {
             if (detailsSnapshot.hasError) {
@@ -108,15 +162,17 @@ class _WatchlistShowsTab extends StatelessWidget {
             if (!detailsSnapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-            final shows = detailsSnapshot.data!.whereType<TvShowDetails>().toList();
+            final shows = detailsSnapshot.data!
+                .whereType<TvShowDetails>()
+                .toList();
             return ListView.builder(
               itemCount: shows.length,
               itemBuilder: (context, index) {
                 final show = shows[index];
                 return FutureBuilder<ShowProgress>(
                   future: computeShowProgress(
-                    tmdbClient: tmdbClient,
-                    watchedRepository: watchedRepository,
+                    tmdbClient: widget.tmdbClient,
+                    watchedRepository: widget.watchedRepository,
                     show: show,
                   ),
                   builder: (context, progressSnapshot) {
@@ -128,17 +184,15 @@ class _WatchlistShowsTab extends StatelessWidget {
                       posterPath: show.posterPath,
                       title: show.name,
                       subtitle: subtitle,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => DetailScreen(
-                            tmdbId: show.id,
-                            mediaType: MediaType.tv,
-                            tmdbClient: tmdbClient,
-                            watchlistRepository: watchlistRepository,
-                            watchedRepository: watchedRepository,
-                          ),
-                        ),
-                      ),
+                      titleSuffix:
+                          progress?.isShowComplete(show.seasons) ?? false
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 18,
+                            )
+                          : null,
+                      onTap: () => _openDetail(context, show.id),
                     );
                   },
                 );
@@ -182,7 +236,9 @@ class _WatchlistMoviesTab extends StatelessWidget {
             if (!detailsSnapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-            final movies = detailsSnapshot.data!.whereType<MovieDetails>().toList();
+            final movies = detailsSnapshot.data!
+                .whereType<MovieDetails>()
+                .toList();
             return ListView.builder(
               itemCount: movies.length,
               itemBuilder: (context, index) {

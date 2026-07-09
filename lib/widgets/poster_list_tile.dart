@@ -10,6 +10,10 @@ class PosterListTile extends StatelessWidget {
   final VoidCallback onTap;
   final Widget? trailing;
 
+  /// An optional small widget (e.g. a completion checkmark) rendered right
+  /// after the title text, on the same line.
+  final Widget? titleSuffix;
+
   const PosterListTile({
     super.key,
     required this.posterPath,
@@ -17,6 +21,7 @@ class PosterListTile extends StatelessWidget {
     required this.onTap,
     this.subtitle,
     this.trailing,
+    this.titleSuffix,
   });
 
   static String posterUrl(String path) =>
@@ -47,11 +52,21 @@ class PosterListTile extends StatelessWidget {
                   ),
           ),
         ),
-        title: Text(
-          title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            if (titleSuffix != null) ...[
+              const SizedBox(width: 6),
+              titleSuffix!,
+            ],
+          ],
         ),
         subtitle: subtitle == null ? null : Text(subtitle!),
         trailing: trailing,
