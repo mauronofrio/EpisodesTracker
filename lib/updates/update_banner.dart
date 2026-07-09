@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../l10n/app_localizations.dart';
 import 'update_checker.dart';
 
 /// Wraps [child] and, once on startup, checks GitHub Releases for a newer
@@ -85,15 +86,16 @@ class _UpdateScope extends InheritedWidget {
 /// above and [UpdateIndicatorButton]'s manual reopen, so both look and
 /// behave identically.
 void showUpdateDialog(BuildContext context, ReleaseInfo release) {
+  final l10n = AppLocalizations.of(context)!;
   showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Nuova versione disponibile'),
-      content: Text('È disponibile la versione ${release.tagName}.'),
+      title: Text(l10n.updateAvailableTitle),
+      content: Text(l10n.updateAvailableBody(release.tagName)),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Chiudi'),
+          child: Text(l10n.close),
         ),
         if (release.apkDownloadUrl != null)
           FilledButton(
@@ -101,7 +103,7 @@ void showUpdateDialog(BuildContext context, ReleaseInfo release) {
               Uri.parse(release.apkDownloadUrl!),
               mode: LaunchMode.externalApplication,
             ),
-            child: const Text('Scarica'),
+            child: Text(l10n.download),
           ),
       ],
     ),

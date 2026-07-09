@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../support/localized_test_app.dart';
+
 void main() {
   setUp(() {
     PackageInfo.setMockInitialValues(
@@ -29,7 +31,7 @@ void main() {
   }
 
   Widget wrap(UpdateChecker checker) {
-    return MaterialApp(
+    return localizedTestApp(
       home: UpdateBanner(
         updateChecker: checker,
         child: Scaffold(

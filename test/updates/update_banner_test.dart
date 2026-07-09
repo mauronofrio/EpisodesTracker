@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../support/localized_test_app.dart';
+
 void main() {
   setUp(() {
     PackageInfo.setMockInitialValues(
@@ -32,7 +34,7 @@ void main() {
   ) async {
     ReleaseInfo? seen;
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: UpdateBanner(
           updateChecker: checkerReturning('v2.0.0'),
           child: Builder(
@@ -57,7 +59,7 @@ void main() {
   ) async {
     ReleaseInfo? seen;
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: UpdateBanner(
           updateChecker: checkerReturning('v1.0.0'),
           child: Builder(
@@ -78,7 +80,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: UpdateBanner(
           updateChecker: checkerReturning('v2.0.0'),
           child: const Scaffold(body: SizedBox.shrink()),
@@ -98,7 +100,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: UpdateBanner(
           updateChecker: checkerReturning('v2.0.0'),
           child: const Scaffold(body: SizedBox.shrink()),
@@ -118,7 +120,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      localizedTestApp(
         home: UpdateBanner(
           updateChecker: checkerReturning('v1.0.0'),
           child: const Scaffold(body: SizedBox.shrink()),
