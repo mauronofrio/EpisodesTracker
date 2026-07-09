@@ -13,6 +13,8 @@ import 'data/tmdb_client.dart';
 import 'notifications/notification_service.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
+import 'updates/update_banner.dart';
+import 'updates/update_checker.dart';
 
 class EpisodesTrackerApp extends StatefulWidget {
   final AuthService authService;
@@ -35,7 +37,8 @@ class _EpisodesTrackerAppState extends State<EpisodesTrackerApp> {
   @override
   void initState() {
     super.initState();
-    _foregroundMessageSubscription = widget.notificationService
+    _foregroundMessageSubscription = widget
+        .notificationService
         .onForegroundMessage
         .listen(_showForegroundNotification);
   }
@@ -63,37 +66,44 @@ class _EpisodesTrackerAppState extends State<EpisodesTrackerApp> {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: StreamBuilder(
-        stream: widget.authService.authStateChanges,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          final user = snapshot.data;
-          if (user == null) {
-            return LoginScreen(authService: widget.authService);
-          }
+      home: UpdateBanner(
+        updateChecker: UpdateChecker(
+          httpClient: http.Client(),
+          owner: Env.githubReleasesOwner,
+          repo: Env.githubReleasesRepo,
+        ),
+        child: StreamBuilder(
+          stream: widget.authService.authStateChanges,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            final user = snapshot.data;
+            if (user == null) {
+              return LoginScreen(authService: widget.authService);
+            }
 
-          final tmdbClient = TmdbClient(
-            httpClient: http.Client(),
-            readAccessToken: Env.tmdbReadAccessToken,
-          );
-          final firestore = FirebaseFirestore.instance;
-          return HomeShell(
-            authService: widget.authService,
-            tmdbClient: tmdbClient,
-            watchlistRepository: WatchlistRepository(
-              firestore: firestore,
-              uid: user.uid,
-            ),
-            watchedRepository: WatchedRepository(
-              firestore: firestore,
-              uid: user.uid,
-            ),
-          );
-        },
+            final tmdbClient = TmdbClient(
+              httpClient: http.Client(),
+              readAccessToken: Env.tmdbReadAccessToken,
+            );
+            final firestore = FirebaseFirestore.instance;
+            return HomeShell(
+              authService: widget.authService,
+              tmdbClient: tmdbClient,
+              watchlistRepository: WatchlistRepository(
+                firestore: firestore,
+                uid: user.uid,
+              ),
+              watchedRepository: WatchedRepository(
+                firestore: firestore,
+                uid: user.uid,
+              ),
+            );
+          },
+        ),
       ),
     );
   }

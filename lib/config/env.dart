@@ -15,4 +15,11 @@ class Env {
   /// constant rather than a `.env` value.
   static const googleSignInServerClientId =
       '745329621491-mjh4jsddl1trutd9ttovpudhv1m5tuud.apps.googleusercontent.com';
+
+  /// The public GitHub repo the update banner checks for new releases.
+  /// TODO: confirm/adjust once the real repo is created and handed over
+  /// (see docs/superpowers/specs design: repo must be public, no GitHub
+  /// token embedded, so this is a plain constant, not a secret).
+  static const githubReleasesOwner = 'mauronofrio';
+  static const githubReleasesRepo = 'EpisodesTracker';
 }
