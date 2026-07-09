@@ -32,9 +32,15 @@ class WatchlistRepository {
     return doc.exists;
   }
 
+  /// Doc IDs with a non-numeric id (should never happen via this
+  /// repository's own writes, but defends against a manual edit or future
+  /// migration bug) are skipped rather than crashing the whole stream.
   Stream<List<int>> watchShowIds() {
     return _shows.snapshots().map(
-      (snapshot) => snapshot.docs.map((d) => int.parse(d.id)).toList(),
+      (snapshot) => snapshot.docs
+          .map((d) => int.tryParse(d.id))
+          .whereType<int>()
+          .toList(),
     );
   }
 
@@ -53,7 +59,10 @@ class WatchlistRepository {
 
   Stream<List<int>> watchMovieIds() {
     return _movies.snapshots().map(
-      (snapshot) => snapshot.docs.map((d) => int.parse(d.id)).toList(),
+      (snapshot) => snapshot.docs
+          .map((d) => int.tryParse(d.id))
+          .whereType<int>()
+          .toList(),
     );
   }
 }

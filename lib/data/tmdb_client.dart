@@ -76,4 +76,9 @@ class TmdbClient {
         .map((e) => Episode.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  /// Closes the underlying HTTP client, releasing its connection pool.
+  /// Callers that own a TmdbClient for a bounded lifetime (e.g. one per
+  /// signed-in session) must call this when they're done with it.
+  void close() => _httpClient.close();
 }

@@ -41,6 +41,21 @@ void main() {
       final ids = await repository.watchShowIds().first;
       expect(ids.where((id) => id == 1399), hasLength(1));
     });
+
+    test(
+      'watchShowIds skips non-numeric doc ids instead of erroring the stream',
+      () async {
+        await repository.addShow(1399);
+        await firestore
+            .collection('users/user-1/watchlist_shows')
+            .doc('not-a-number')
+            .set({'addedAt': null});
+
+        final ids = await repository.watchShowIds().first;
+
+        expect(ids, [1399]);
+      },
+    );
   });
 
   group('movies', () {
@@ -60,6 +75,21 @@ void main() {
       final ids = await repository.watchMovieIds().first;
       expect(ids, [550]);
     });
+
+    test(
+      'watchMovieIds skips non-numeric doc ids instead of erroring the stream',
+      () async {
+        await repository.addMovie(550);
+        await firestore
+            .collection('users/user-1/watchlist_movies')
+            .doc('not-a-number')
+            .set({'addedAt': null});
+
+        final ids = await repository.watchMovieIds().first;
+
+        expect(ids, [550]);
+      },
+    );
   });
 
   test('shows and movies watchlists are independent', () async {

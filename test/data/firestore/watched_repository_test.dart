@@ -48,6 +48,31 @@ void main() {
       expect(a, equals(b));
       expect(a.docId, '1_2_3');
     });
+
+    test(
+      'skips malformed documents instead of erroring the whole stream',
+      () async {
+        await repository.markEpisodeWatched(
+          const WatchedEpisodeId(showId: 1399, season: 1, episode: 1),
+        );
+        // A doc with a non-int field, as could result from a manual edit
+        // or a future migration bug.
+        await firestore
+            .collection('users/user-1/watched_episodes')
+            .doc('1399_1_2')
+            .set({'showId': 1399, 'season': 1, 'episode': 'not-a-number'});
+
+        final watched = await repository
+            .watchedEpisodeIdsForShow(1399)
+            .first;
+
+        expect(watched, hasLength(1));
+        expect(
+          watched.first,
+          const WatchedEpisodeId(showId: 1399, season: 1, episode: 1),
+        );
+      },
+    );
   });
 
   group('movies', () {
@@ -68,5 +93,20 @@ void main() {
       final ids = await repository.watchedMovieIds().first;
       expect(ids, {550, 551});
     });
+
+    test(
+      'watchedMovieIds skips non-numeric doc ids instead of erroring the stream',
+      () async {
+        await repository.markMovieWatched(550);
+        await firestore
+            .collection('users/user-1/watched_movies')
+            .doc('not-a-number')
+            .set({'watchedAt': null});
+
+        final ids = await repository.watchedMovieIds().first;
+
+        expect(ids, {550});
+      },
+    );
   });
 }

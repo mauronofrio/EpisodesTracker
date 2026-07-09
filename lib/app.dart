@@ -34,10 +34,15 @@ class EpisodesTrackerApp extends StatefulWidget {
 class _EpisodesTrackerAppState extends State<EpisodesTrackerApp> {
   final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
   StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
+  late final TmdbClient _tmdbClient;
 
   @override
   void initState() {
     super.initState();
+    _tmdbClient = TmdbClient(
+      httpClient: http.Client(),
+      readAccessToken: Env.tmdbReadAccessToken,
+    );
     _foregroundMessageSubscription = widget
         .notificationService
         .onForegroundMessage
@@ -56,6 +61,7 @@ class _EpisodesTrackerAppState extends State<EpisodesTrackerApp> {
   @override
   void dispose() {
     _foregroundMessageSubscription?.cancel();
+    _tmdbClient.close();
     super.dispose();
   }
 
@@ -84,14 +90,10 @@ class _EpisodesTrackerAppState extends State<EpisodesTrackerApp> {
               return LoginScreen(authService: widget.authService);
             }
 
-            final tmdbClient = TmdbClient(
-              httpClient: http.Client(),
-              readAccessToken: Env.tmdbReadAccessToken,
-            );
             final firestore = FirebaseFirestore.instance;
             return HomeShell(
               authService: widget.authService,
-              tmdbClient: tmdbClient,
+              tmdbClient: _tmdbClient,
               watchlistRepository: WatchlistRepository(
                 firestore: firestore,
                 uid: user.uid,

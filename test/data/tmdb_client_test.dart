@@ -5,6 +5,9 @@ import 'package:episodes_tracker/data/tmdb_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockHttpClient extends Mock implements http.Client {}
 
 void main() {
   group('TmdbClient.searchMulti', () {
@@ -241,6 +244,21 @@ void main() {
       expect(episodes, hasLength(1));
       expect(episodes[0].name, 'The Heirs of the Dragon');
       expect(episodes[0].episodeNumber, 1);
+    });
+  });
+
+  group('TmdbClient.close', () {
+    test('closes the underlying http client', () {
+      final mockHttpClient = MockHttpClient();
+      when(() => mockHttpClient.close()).thenReturn(null);
+
+      final client = TmdbClient(
+        httpClient: mockHttpClient,
+        readAccessToken: 'test-token',
+      );
+      client.close();
+
+      verify(() => mockHttpClient.close()).called(1);
     });
   });
 }

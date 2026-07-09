@@ -59,17 +59,27 @@ class WatchedRepository {
 
   /// Emits the set of watched episode IDs for a single show, so a detail
   /// screen can check "is this episode watched?" without loading the whole
-  /// account's history.
+  /// account's history. Documents with missing/malformed fields (should
+  /// never happen via this repository's own writes, but defends against a
+  /// manual edit or future migration bug) are skipped rather than crashing
+  /// the whole stream.
   Stream<Set<WatchedEpisodeId>> watchedEpisodeIdsForShow(int showId) {
     return _episodes.where('showId', isEqualTo: showId).snapshots().map(
       (snapshot) => snapshot.docs
-          .map(
-            (d) => WatchedEpisodeId(
-              showId: d['showId'] as int,
-              season: d['season'] as int,
-              episode: d['episode'] as int,
-            ),
-          )
+          .map((d) {
+            final showId = d['showId'];
+            final season = d['season'];
+            final episode = d['episode'];
+            if (showId is! int || season is! int || episode is! int) {
+              return null;
+            }
+            return WatchedEpisodeId(
+              showId: showId,
+              season: season,
+              episode: episode,
+            );
+          })
+          .whereType<WatchedEpisodeId>()
           .toSet(),
     );
   }
@@ -89,7 +99,10 @@ class WatchedRepository {
 
   Stream<Set<int>> watchedMovieIds() {
     return _movies.snapshots().map(
-      (snapshot) => snapshot.docs.map((d) => int.parse(d.id)).toSet(),
+      (snapshot) => snapshot.docs
+          .map((d) => int.tryParse(d.id))
+          .whereType<int>()
+          .toSet(),
     );
   }
 }
