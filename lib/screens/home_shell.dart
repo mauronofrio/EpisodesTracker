@@ -35,16 +35,19 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final screens = [
       SearchScreen(
+        authService: widget.authService,
         tmdbClient: widget.tmdbClient,
         watchlistRepository: widget.watchlistRepository,
         watchedRepository: widget.watchedRepository,
       ),
       WatchlistScreen(
+        authService: widget.authService,
         tmdbClient: widget.tmdbClient,
         watchlistRepository: widget.watchlistRepository,
         watchedRepository: widget.watchedRepository,
       ),
       CalendarScreen(
+        authService: widget.authService,
         tmdbClient: widget.tmdbClient,
         watchlistRepository: widget.watchlistRepository,
         watchedRepository: widget.watchedRepository,

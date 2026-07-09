@@ -2,20 +2,24 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../auth/auth_service.dart';
 import '../data/firestore/watched_repository.dart';
 import '../data/firestore/watchlist_repository.dart';
 import '../data/models/search_result.dart';
 import '../data/tmdb_client.dart';
 import '../widgets/poster_list_tile.dart';
+import '../widgets/sign_out_button.dart';
 import 'detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
+  final AuthService authService;
   final TmdbClient tmdbClient;
   final WatchlistRepository watchlistRepository;
   final WatchedRepository watchedRepository;
 
   const SearchScreen({
     super.key,
+    required this.authService,
     required this.tmdbClient,
     required this.watchlistRepository,
     required this.watchedRepository,
@@ -86,6 +90,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           onChanged: _onQueryChanged,
         ),
+        actions: [SignOutButton(authService: widget.authService)],
       ),
       body: Builder(
         builder: (context) {

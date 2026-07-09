@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import '../auth/auth_service.dart';
 import '../data/firestore/watched_repository.dart';
 import '../data/firestore/watchlist_repository.dart';
+import '../data/models/movie_details.dart';
 import '../data/models/search_result.dart';
+import '../data/models/tv_show_details.dart';
+import '../data/resilient_fetch.dart';
 import '../data/tmdb_client.dart';
 import '../widgets/poster_list_tile.dart';
+import '../widgets/sign_out_button.dart';
 import 'detail_screen.dart';
 
 class _UpcomingItem {
@@ -26,12 +32,14 @@ class _UpcomingItem {
 }
 
 class CalendarScreen extends StatefulWidget {
+  final AuthService authService;
   final TmdbClient tmdbClient;
   final WatchlistRepository watchlistRepository;
   final WatchedRepository watchedRepository;
 
   const CalendarScreen({
     super.key,
+    required this.authService,
     required this.tmdbClient,
     required this.watchlistRepository,
     required this.watchedRepository,
@@ -58,9 +66,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     final items = <_UpcomingItem>[];
 
-    final shows = await Future.wait(
-      showIds.map(widget.tmdbClient.getTvShowDetails),
-    );
+    final shows = (await Future.wait(
+      showIds.map((id) => fetchOrNull(() => widget.tmdbClient.getTvShowDetails(id))),
+    )).whereType<TvShowDetails>();
     for (final show in shows) {
       final next = show.nextEpisodeToAir;
       if (next?.airDate == null) continue;
@@ -78,9 +86,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
       );
     }
 
-    final movies = await Future.wait(
-      movieIds.map(widget.tmdbClient.getMovieDetails),
-    );
+    final movies = (await Future.wait(
+      movieIds.map((id) => fetchOrNull(() => widget.tmdbClient.getMovieDetails(id))),
+    )).whereType<MovieDetails>();
     for (final movie in movies) {
       if (movie.releaseDate == null) continue;
       if (movie.releaseDate!.isBefore(today)) continue;
@@ -106,13 +114,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final diff = date.difference(today).inDays;
     if (diff == 0) return 'Oggi';
     if (diff == 1) return 'Domani';
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    return DateFormat('yyyy-MM-dd').format(date);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendario')),
+      appBar: AppBar(
+        title: const Text('Calendario'),
+        actions: [SignOutButton(authService: widget.authService)],
+      ),
       body: FutureBuilder<List<_UpcomingItem>>(
         future: _future,
         builder: (context, snapshot) {

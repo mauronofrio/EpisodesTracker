@@ -31,18 +31,35 @@ void main() async {
   final notificationService = NotificationService();
   // Keep the users/{uid} profile document in sync with the signed-in
   // Google account, and register this device's FCM token, every time the
-  // sign-in state changes to a real user.
-  authService.authStateChanges.listen((user) {
-    if (user == null) return;
-    userProfileRepository.upsertProfile(
-      uid: user.uid,
-      displayName: user.displayName,
-      email: user.email,
-      photoURL: user.photoURL,
-    );
-    notificationService.registerDeviceToken(
-      DeviceTokenRepository(firestore: FirebaseFirestore.instance, uid: user.uid),
-    );
+  // sign-in state changes to a real user. On sign-out, stop listening for
+  // token refreshes so a stale subscription doesn't write to the
+  // now-signed-out user's Firestore doc (relevant on this app's shared
+  // 2-3 user devices).
+  authService.authStateChanges.listen((user) async {
+    if (user == null) {
+      await notificationService.stopListening();
+      return;
+    }
+    try {
+      await userProfileRepository.upsertProfile(
+        uid: user.uid,
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL,
+      );
+    } catch (e) {
+      debugPrint('Failed to upsert user profile for ${user.uid}: $e');
+    }
+    try {
+      await notificationService.registerDeviceToken(
+        DeviceTokenRepository(
+          firestore: FirebaseFirestore.instance,
+          uid: user.uid,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Failed to register device token for ${user.uid}: $e');
+    }
   });
 
   runApp(

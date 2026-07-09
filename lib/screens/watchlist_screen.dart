@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
 
+import '../auth/auth_service.dart';
 import '../data/firestore/watched_repository.dart';
 import '../data/firestore/watchlist_repository.dart';
 import '../data/models/movie_details.dart';
 import '../data/models/search_result.dart';
 import '../data/models/tv_show_details.dart';
+import '../data/resilient_fetch.dart';
 import '../data/tmdb_client.dart';
 import '../widgets/poster_list_tile.dart';
+import '../widgets/sign_out_button.dart';
 import 'detail_screen.dart';
 
 class WatchlistScreen extends StatelessWidget {
+  final AuthService authService;
   final TmdbClient tmdbClient;
   final WatchlistRepository watchlistRepository;
   final WatchedRepository watchedRepository;
 
   const WatchlistScreen({
     super.key,
+    required this.authService,
     required this.tmdbClient,
     required this.watchlistRepository,
     required this.watchedRepository,
@@ -28,6 +33,7 @@ class WatchlistScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Watchlist'),
+          actions: [SignOutButton(authService: authService)],
           bottom: const TabBar(
             tabs: [Tab(text: 'Serie'), Tab(text: 'Film')],
           ),
@@ -71,13 +77,18 @@ class _WatchlistShowsTab extends StatelessWidget {
         if (ids.isEmpty) {
           return const Center(child: Text('Nessuna serie in watchlist'));
         }
-        return FutureBuilder<List<TvShowDetails>>(
-          future: Future.wait(ids.map(tmdbClient.getTvShowDetails)),
+        return FutureBuilder<List<TvShowDetails?>>(
+          future: Future.wait(
+            ids.map((id) => fetchOrNull(() => tmdbClient.getTvShowDetails(id))),
+          ),
           builder: (context, detailsSnapshot) {
+            if (detailsSnapshot.hasError) {
+              return Center(child: Text('Errore: ${detailsSnapshot.error}'));
+            }
             if (!detailsSnapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-            final shows = detailsSnapshot.data!;
+            final shows = detailsSnapshot.data!.whereType<TvShowDetails>().toList();
             return ListView.builder(
               itemCount: shows.length,
               itemBuilder: (context, index) {
@@ -127,13 +138,18 @@ class _WatchlistMoviesTab extends StatelessWidget {
         if (ids.isEmpty) {
           return const Center(child: Text('Nessun film in watchlist'));
         }
-        return FutureBuilder<List<MovieDetails>>(
-          future: Future.wait(ids.map(tmdbClient.getMovieDetails)),
+        return FutureBuilder<List<MovieDetails?>>(
+          future: Future.wait(
+            ids.map((id) => fetchOrNull(() => tmdbClient.getMovieDetails(id))),
+          ),
           builder: (context, detailsSnapshot) {
+            if (detailsSnapshot.hasError) {
+              return Center(child: Text('Errore: ${detailsSnapshot.error}'));
+            }
             if (!detailsSnapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
-            final movies = detailsSnapshot.data!;
+            final movies = detailsSnapshot.data!.whereType<MovieDetails>().toList();
             return ListView.builder(
               itemCount: movies.length,
               itemBuilder: (context, index) {
