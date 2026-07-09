@@ -13,6 +13,7 @@ import 'data/tmdb_client.dart';
 import 'notifications/notification_service.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
+import 'theme/app_theme.dart';
 import 'updates/update_banner.dart';
 import 'updates/update_checker.dart';
 
@@ -63,9 +64,7 @@ class _EpisodesTrackerAppState extends State<EpisodesTrackerApp> {
     return MaterialApp(
       title: 'EpisodesTracker',
       scaffoldMessengerKey: _scaffoldMessengerKey,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
+      theme: AppTheme.dark,
       home: UpdateBanner(
         updateChecker: UpdateChecker(
           httpClient: http.Client(),

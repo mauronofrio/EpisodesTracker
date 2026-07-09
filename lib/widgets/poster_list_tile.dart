@@ -19,32 +19,43 @@ class PosterListTile extends StatelessWidget {
     this.trailing,
   });
 
-  static String posterUrl(String path) => 'https://image.tmdb.org/t/p/w200$path';
+  static String posterUrl(String path) =>
+      'https://image.tmdb.org/t/p/w200$path';
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      leading: SizedBox(
-        width: 46,
-        height: 69,
-        child: posterPath == null
-            ? const ColoredBox(
-                color: Color(0xFFE0E0E0),
-                child: Icon(Icons.image_not_supported, size: 20),
-              )
-            : Image.network(
-                posterUrl(posterPath!),
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stack) => const ColoredBox(
-                  color: Color(0xFFE0E0E0),
-                  child: Icon(Icons.image_not_supported, size: 20),
-                ),
-              ),
+    return Card(
+      child: ListTile(
+        onTap: onTap,
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: SizedBox(
+            width: 46,
+            height: 69,
+            child: posterPath == null
+                ? const ColoredBox(
+                    color: Color(0xFF2A2733),
+                    child: Icon(Icons.image_not_supported, size: 20),
+                  )
+                : Image.network(
+                    posterUrl(posterPath!),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stack) => const ColoredBox(
+                      color: Color(0xFF2A2733),
+                      child: Icon(Icons.image_not_supported, size: 20),
+                    ),
+                  ),
+          ),
+        ),
+        title: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: subtitle == null ? null : Text(subtitle!),
+        trailing: trailing,
       ),
-      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: subtitle == null ? null : Text(subtitle!),
-      trailing: trailing,
     );
   }
 }
