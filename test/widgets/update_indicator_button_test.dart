@@ -47,13 +47,18 @@ void main() {
   });
 
   testWidgets(
-    'shows the icon when a newer release exists, and opens a centered '
-    'dialog (not a new route) on tap',
+    'shows the icon when a newer release exists, and reopens the same '
+    'centered dialog (not a new route) on tap after the automatic one '
+    'is closed',
     (tester) async {
       await tester.pumpWidget(wrap(checkerReturning('v2.0.0')));
       await tester.pumpAndSettle();
 
+      // UpdateBanner already auto-opened the dialog once on startup.
       expect(find.byIcon(Icons.system_update_outlined), findsOneWidget);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.text('Chiudi'));
+      await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsNothing);
 
       await tester.tap(find.byIcon(Icons.system_update_outlined));

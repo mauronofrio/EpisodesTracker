@@ -73,4 +73,60 @@ void main() {
 
     expect(seen, isNull);
   });
+
+  testWidgets('automatically opens the update dialog once on startup', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: UpdateBanner(
+          updateChecker: checkerReturning('v2.0.0'),
+          child: const Scaffold(body: SizedBox.shrink()),
+        ),
+      ),
+    );
+
+    expect(find.byType(AlertDialog), findsNothing);
+
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('È disponibile la versione v2.0.0.'), findsOneWidget);
+  });
+
+  testWidgets('does not reopen the dialog automatically after it is closed', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: UpdateBanner(
+          updateChecker: checkerReturning('v2.0.0'),
+          child: const Scaffold(body: SizedBox.shrink()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+
+    await tester.tap(find.text('Chiudi'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+  });
+
+  testWidgets('does not open a dialog when already up to date', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: UpdateBanner(
+          updateChecker: checkerReturning('v1.0.0'),
+          child: const Scaffold(body: SizedBox.shrink()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+  });
 }

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'update_checker.dart';
 
 /// Wraps [child] and, once on startup, checks GitHub Releases for a newer
-/// version. Renders no UI of its own — it exposes the result to descendants
-/// via [UpdateBanner.of], so a small icon (e.g. [UpdateIndicatorButton]) can
-/// be placed wherever makes sense (next to sign-out, in an AppBar) instead
-/// of this widget imposing its own banner/overlay on every screen.
+/// version. As soon as one is found it immediately opens [showUpdateDialog]
+/// once, then exposes the release to descendants via [UpdateBanner.of] so a
+/// small icon (e.g. UpdateIndicatorButton) can reopen the same dialog later
+/// — this widget otherwise renders no persistent UI of its own.
 class UpdateBanner extends StatefulWidget {
   final UpdateChecker updateChecker;
   final Widget child;
@@ -50,7 +51,13 @@ class _UpdateBannerState extends State<UpdateBanner> {
       )) {
         return;
       }
-      if (mounted) setState(() => _newerRelease = release);
+      if (!mounted) return;
+      setState(() => _newerRelease = release);
+      // Wait for this frame to finish building before opening the dialog -
+      // showDialog needs a Navigator already present in the tree.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) showUpdateDialog(context, release);
+      });
     } catch (_) {
       // Update checks are best-effort; a failure here must never block
       // the app from being usable.
@@ -71,4 +78,32 @@ class _UpdateScope extends InheritedWidget {
   @override
   bool updateShouldNotify(_UpdateScope oldWidget) =>
       oldWidget.release != release;
+}
+
+/// Opens a small centered dialog (not a full page/route) with the release
+/// version and a download link. Shared by the automatic startup prompt
+/// above and [UpdateIndicatorButton]'s manual reopen, so both look and
+/// behave identically.
+void showUpdateDialog(BuildContext context, ReleaseInfo release) {
+  showDialog<void>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Nuova versione disponibile'),
+      content: Text('È disponibile la versione ${release.tagName}.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Chiudi'),
+        ),
+        if (release.apkDownloadUrl != null)
+          FilledButton(
+            onPressed: () => launchUrl(
+              Uri.parse(release.apkDownloadUrl!),
+              mode: LaunchMode.externalApplication,
+            ),
+            child: const Text('Scarica'),
+          ),
+      ],
+    ),
+  );
 }
