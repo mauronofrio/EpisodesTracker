@@ -118,5 +118,13 @@ void main() {
         isTrue,
       );
     });
+
+    test('strips an uppercase "V" tag prefix (GitHub tags aren\'t forced '
+        'to lowercase)', () {
+      expect(
+        UpdateChecker.isNewer(currentVersion: '0.9.0', latestTag: 'V1.0.0'),
+        isTrue,
+      );
+    });
   });
 }

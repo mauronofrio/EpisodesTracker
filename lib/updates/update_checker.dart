@@ -70,7 +70,13 @@ class UpdateChecker {
   }
 
   static List<int> _parseVersion(String version) {
-    final stripped = version.startsWith('v') ? version.substring(1) : version;
+    // Case-insensitive: GitHub tags aren't guaranteed to use a lowercase
+    // "v" prefix (e.g. a release tagged "V1.0.0"), and a missed strip here
+    // silently breaks every segment's int.tryParse, parsing the whole
+    // version as 0.0.0 - never detected as newer than anything.
+    final stripped = version.toLowerCase().startsWith('v')
+        ? version.substring(1)
+        : version;
     // Drop any build-number suffix (e.g. "1.0.0+3" from pubspec's version).
     final core = stripped.split('+').first;
     final parts = core.split('.');
