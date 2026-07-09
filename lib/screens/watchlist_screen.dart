@@ -9,6 +9,7 @@ import '../data/models/tv_show_details.dart';
 import '../data/resilient_fetch.dart';
 import '../data/show_progress.dart';
 import '../data/tmdb_client.dart';
+import '../widgets/caught_up_indicator.dart';
 import '../widgets/debounced_search_field.dart';
 import '../widgets/poster_list_tile.dart';
 import '../widgets/search_results_list.dart';
@@ -196,14 +197,7 @@ class _WatchlistShowsTabState extends State<_WatchlistShowsTab> {
                               size: 18,
                             )
                           : isCaughtUpButOngoing
-                          ? const Text(
-                              '=',
-                              style: TextStyle(
-                                color: Colors.lightGreen,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            )
+                          ? const CaughtUpIndicator(size: 18)
                           : null,
                       onTap: () => _openDetail(context, show.id),
                     );

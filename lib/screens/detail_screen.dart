@@ -10,6 +10,7 @@ import '../data/models/season_summary.dart';
 import '../data/models/tv_show_details.dart';
 import '../data/show_progress.dart';
 import '../data/tmdb_client.dart';
+import '../widgets/caught_up_indicator.dart';
 import 'season_episodes_screen.dart';
 
 class DetailScreen extends StatefulWidget {
@@ -222,7 +223,7 @@ class _DetailScreenState extends State<DetailScreen> {
               const Icon(Icons.check_circle, color: Colors.green),
             ] else if (showIsCaughtUpButOngoing) ...[
               const SizedBox(width: 8),
-              const _CaughtUpIndicator(),
+              const CaughtUpIndicator(),
             ],
           ],
         ),
@@ -342,7 +343,7 @@ class _DetailScreenState extends State<DetailScreen> {
                 leading: isComplete
                     ? const Icon(Icons.check_circle, color: Colors.green)
                     : isCaughtUpButOngoing
-                    ? const _CaughtUpIndicator()
+                    ? const CaughtUpIndicator()
                     : null,
                 title: Text(season.name),
                 subtitle: Text(subtitle),
@@ -377,32 +378,6 @@ class _DetailScreenState extends State<DetailScreen> {
             }),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// A lighter-green "=" mark shown when the user is caught up with every
-/// aired episode but the season/show isn't finished yet — distinct from
-/// the (darker green) check mark used for a fully completed season/show.
-/// Sized to match [Icons.check_circle] so it lines up in the same slots.
-class _CaughtUpIndicator extends StatelessWidget {
-  const _CaughtUpIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 24,
-      height: 24,
-      child: Center(
-        child: Text(
-          '=',
-          style: TextStyle(
-            color: Colors.lightGreen,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
       ),
     );
   }
