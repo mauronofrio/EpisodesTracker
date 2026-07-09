@@ -30,8 +30,8 @@ class CaughtUpIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final barColor = Theme.of(context).scaffoldBackgroundColor;
     final bar = Container(
-      width: size * 0.56,
-      height: size * 0.12,
+      width: size * 0.504,
+      height: size * 0.108,
       color: barColor,
     );
     return Stack(
@@ -40,7 +40,7 @@ class CaughtUpIndicator extends StatelessWidget {
         Icon(Icons.circle, color: Colors.lightGreen, size: size),
         Column(
           mainAxisSize: MainAxisSize.min,
-          children: [bar, SizedBox(height: size * 0.16), bar],
+          children: [bar, SizedBox(height: size * 0.144), bar],
         ),
       ],
     );

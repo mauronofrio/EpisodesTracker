@@ -28,8 +28,8 @@ void main() {
       expect(bars, hasLength(2));
       for (final bar in bars) {
         expect(bar.color, Colors.black);
-        expect(bar.constraints?.maxWidth, 24 * 0.56);
-        expect(bar.constraints?.maxHeight, 24 * 0.12);
+        expect(bar.constraints?.maxWidth, 24 * 0.504);
+        expect(bar.constraints?.maxHeight, 24 * 0.108);
       }
     },
   );
@@ -51,8 +51,8 @@ void main() {
         )
         .toList();
     for (final bar in bars) {
-      expect(bar.constraints?.maxWidth, 18 * 0.56);
-      expect(bar.constraints?.maxHeight, 18 * 0.12);
+      expect(bar.constraints?.maxWidth, 18 * 0.504);
+      expect(bar.constraints?.maxHeight, 18 * 0.108);
     }
   });
 
