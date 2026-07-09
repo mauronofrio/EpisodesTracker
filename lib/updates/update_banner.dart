@@ -22,6 +22,7 @@ class UpdateBanner extends StatefulWidget {
 
 class _UpdateBannerState extends State<UpdateBanner> {
   ReleaseInfo? _newerRelease;
+  bool _bannerDismissed = false;
 
   @override
   void initState() {
@@ -52,13 +53,40 @@ class _UpdateBannerState extends State<UpdateBanner> {
     final release = _newerRelease;
     if (release == null) return widget.child;
 
+    // Dismissing the banner only hides it for the rest of this session —
+    // it must not forget the update exists, or there'd be no way back to
+    // it short of restarting the app. Instead, replace the banner with a
+    // small persistent icon that reopens it.
+    if (_bannerDismissed) {
+      return Stack(
+        children: [
+          widget.child,
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 8,
+            child: Material(
+              color: Theme.of(context).colorScheme.primary,
+              shape: const CircleBorder(),
+              elevation: 2,
+              child: IconButton(
+                icon: const Icon(Icons.system_update),
+                color: Theme.of(context).colorScheme.onPrimary,
+                tooltip: 'Nuova versione disponibile: ${release.tagName}',
+                onPressed: () => setState(() => _bannerDismissed = false),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         MaterialBanner(
           content: Text('Nuova versione disponibile: ${release.tagName}'),
           actions: [
             TextButton(
-              onPressed: () => setState(() => _newerRelease = null),
+              onPressed: () => setState(() => _bannerDismissed = true),
               child: const Text('Più tardi'),
             ),
             if (release.apkDownloadUrl != null)
