@@ -1,0 +1,94 @@
+{
+  "@@locale": "en",
+  "account": "Account",
+  "tagline": "Series and movies you follow, all in one place.",
+  "signInWithGoogle": "Sign in with Google",
+  "signInFailed": "Sign-in failed: {error}",
+  "@signInFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "navCalendar": "Calendar",
+  "tabShows": "Shows",
+  "tabMovies": "Movies",
+  "noShowsInWatchlist": "No shows in your watchlist",
+  "noMoviesInWatchlist": "No movies in your watchlist",
+  "errorPrefix": "Error: {message}",
+  "@errorPrefix": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+  "watchedCount": "{watched}/{aired} episodes watched",
+  "@watchedCount": {
+    "placeholders": {
+      "watched": {"type": "int"},
+      "aired": {"type": "int"}
+    }
+  },
+  "movieRelease": "Movie release",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "noUpcomingReleases": "No upcoming releases in your watchlist",
+  "inWatchlist": "In watchlist",
+  "addToWatchlist": "Add to watchlist",
+  "watched": "Watched",
+  "markAsWatched": "Mark as watched",
+  "nextEpisode": "Next episode",
+  "markWatched": "Mark watched",
+  "youAreCaughtUp": "You're caught up",
+  "nextEpisodeSubtitle": "Next episode: {info}",
+  "@nextEpisodeSubtitle": {
+    "placeholders": {
+      "info": {"type": "String"}
+    }
+  },
+  "caughtUpWithEverythingAired": "You're caught up with everything aired",
+  "seasons": "Seasons",
+  "episodeCount": "{count} episodes",
+  "@episodeCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "markSeasonWatched": "Mark season watched",
+  "seasonAppBarTitle": "{showName} - Season {number}",
+  "@seasonAppBarTitle": {
+    "placeholders": {
+      "showName": {"type": "String"},
+      "number": {"type": "int"}
+    }
+  },
+  "rewatched": "Rewatched",
+  "unknownAirDate": "Unknown air date",
+  "notYetAiredDate": "{date} · not yet aired",
+  "@notYetAiredDate": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "noResults": "No results",
+  "mediaTypeTv": "TV Series",
+  "mediaTypeMovie": "Movie",
+  "signOut": "Sign out",
+  "confirmSignOut": "Do you want to sign out of this account?",
+  "cancel": "Cancel",
+  "githubProject": "GitHub Project",
+  "updateAvailableTitle": "New version available",
+  "updateAvailableBody": "Version {tag} is available.",
+  "@updateAvailableBody": {
+    "placeholders": {
+      "tag": {"type": "String"}
+    }
+  },
+  "close": "Close",
+  "download": "Download",
+  "updateAvailableTooltip": "New version available: {tag}",
+  "@updateAvailableTooltip": {
+    "placeholders": {
+      "tag": {"type": "String"}
+    }
+  },
+  "searchHint": "Search shows or movies..."
+}
