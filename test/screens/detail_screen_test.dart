@@ -13,6 +13,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../support/localized_test_app.dart';
+
 class MockWatchlistRepository extends Mock implements WatchlistRepository {}
 
 void main() {
@@ -36,7 +38,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        localizedTestApp(
           home: DetailScreen(
             tmdbId: 1399,
             mediaType: MediaType.tv,
@@ -95,7 +97,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        localizedTestApp(
           home: DetailScreen(
             tmdbId: 550,
             mediaType: MediaType.movie,
@@ -166,7 +168,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
+        localizedTestApp(
           home: DetailScreen(
             tmdbId: 94997,
             mediaType: MediaType.tv,

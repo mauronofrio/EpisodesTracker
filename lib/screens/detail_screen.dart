@@ -10,6 +10,7 @@ import '../data/models/season_summary.dart';
 import '../data/models/tv_show_details.dart';
 import '../data/show_progress.dart';
 import '../data/tmdb_client.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/caught_up_indicator.dart';
 import 'season_episodes_screen.dart';
 
@@ -105,9 +106,10 @@ class _DetailScreenState extends State<DetailScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _inWatchlist = !adding);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
+      );
     }
   }
 
@@ -121,9 +123,10 @@ class _DetailScreenState extends State<DetailScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isWatched = !watching);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
+      );
     }
   }
 
@@ -158,9 +161,10 @@ class _DetailScreenState extends State<DetailScreen> {
       await _refreshProgress();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
+      );
     }
   }
 
@@ -178,21 +182,25 @@ class _DetailScreenState extends State<DetailScreen> {
       await _refreshProgress();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Errore: $e')));
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_loading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
     if (_error != null) {
-      return Scaffold(body: Center(child: Text('Errore: $_error')));
+      return Scaffold(
+        body: Center(child: Text(l10n.errorPrefix(_error.toString()))),
+      );
     }
 
     // Exactly one of these is populated at this point (widget.mediaType
@@ -255,9 +263,7 @@ class _DetailScreenState extends State<DetailScreen> {
                         _inWatchlist ? Icons.check : Icons.add,
                       ),
                       label: Text(
-                        _inWatchlist
-                            ? 'Nella watchlist'
-                            : 'Aggiungi a watchlist',
+                        _inWatchlist ? l10n.inWatchlist : l10n.addToWatchlist,
                       ),
                     ),
                     if (widget.mediaType == MediaType.movie) ...[
@@ -269,7 +275,9 @@ class _DetailScreenState extends State<DetailScreen> {
                               ? Icons.visibility
                               : Icons.visibility_outlined,
                         ),
-                        label: Text(_isWatched ? 'Visto' : 'Segna come visto'),
+                        label: Text(
+                          _isWatched ? l10n.watched : l10n.markAsWatched,
+                        ),
                       ),
                     ],
                   ],
@@ -283,14 +291,14 @@ class _DetailScreenState extends State<DetailScreen> {
             const SizedBox(height: 16),
             if (_progress case final progress?) ...[
               Text(
-                '${progress.watchedCount}/${progress.airedCount} episodi visti',
+                l10n.watchedCount(progress.watchedCount, progress.airedCount),
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 8),
               if (progress.nextToWatch case final next?)
                 Card(
                   child: ListTile(
-                    title: const Text('Prossimo episodio'),
+                    title: Text(l10n.nextEpisode),
                     subtitle: Text(
                       'S${next.seasonNumber.toString().padLeft(2, '0')}'
                       'E${next.episodeNumber.toString().padLeft(2, '0')} - ${next.name}'
@@ -298,35 +306,37 @@ class _DetailScreenState extends State<DetailScreen> {
                     ),
                     trailing: FilledButton(
                       onPressed: () => _markNextEpisodeWatched(next),
-                      child: const Text('Segna visto'),
+                      child: Text(l10n.markWatched),
                     ),
                   ),
                 )
               else if (_showDetails!.nextEpisodeToAir case final upcoming?)
                 Card(
                   child: ListTile(
-                    title: const Text('Sei aggiornato'),
+                    title: Text(l10n.youAreCaughtUp),
                     subtitle: Text(
-                      'Prossimo episodio: S${upcoming.seasonNumber.toString().padLeft(2, '0')}'
-                      'E${upcoming.episodeNumber.toString().padLeft(2, '0')} - ${upcoming.name}'
-                      '${upcoming.airDate == null ? '' : ' (${DateFormat('yyyy-MM-dd').format(upcoming.airDate!)})'}',
+                      l10n.nextEpisodeSubtitle(
+                        'S${upcoming.seasonNumber.toString().padLeft(2, '0')}'
+                        'E${upcoming.episodeNumber.toString().padLeft(2, '0')} - ${upcoming.name}'
+                        '${upcoming.airDate == null ? '' : ' (${DateFormat('yyyy-MM-dd').format(upcoming.airDate!)})'}',
+                      ),
                     ),
                   ),
                 )
               else
-                const Text('Sei aggiornato con tutti gli episodi usciti'),
+                Text(l10n.caughtUpWithEverythingAired),
             ],
             const SizedBox(height: 16),
             Text(
-              'Stagioni',
+              l10n.seasons,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             ..._showDetails!.seasons.map((season) {
               final watchedInSeason =
                   _progress?.watchedCountBySeason[season.seasonNumber];
               final subtitle = watchedInSeason == null
-                  ? '${season.episodeCount} episodi'
-                  : '$watchedInSeason/${season.episodeCount} episodi visti';
+                  ? l10n.episodeCount(season.episodeCount)
+                  : l10n.watchedCount(watchedInSeason, season.episodeCount);
               final isComplete =
                   _progress?.isSeasonComplete(
                     season.seasonNumber,
@@ -352,7 +362,7 @@ class _DetailScreenState extends State<DetailScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.playlist_add_check),
-                      tooltip: 'Segna stagione vista',
+                      tooltip: l10n.markSeasonWatched,
                       onPressed: () => _markSeasonWatchedFromSummary(season),
                     ),
                     const Icon(Icons.chevron_right),
