@@ -9,10 +9,11 @@ import '../data/models/search_result.dart';
 import '../data/models/tv_show_details.dart';
 import '../data/resilient_fetch.dart';
 import '../data/tmdb_client.dart';
+import '../l10n/app_localizations.dart';
+import '../widgets/app_drawer.dart';
 import '../widgets/debounced_search_field.dart';
 import '../widgets/poster_list_tile.dart';
 import '../widgets/search_results_list.dart';
-import '../widgets/sign_out_button.dart';
 import '../widgets/update_indicator_button.dart';
 import 'detail_screen.dart';
 
@@ -115,7 +116,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           title: movie.title,
           posterPath: movie.posterPath,
           date: movie.releaseDate!,
-          subtitle: 'Uscita film',
+          subtitle: '__MOVIE_RELEASE__',
         ),
       );
     }
@@ -124,17 +125,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return items;
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(BuildContext context, DateTime date) {
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final diff = date.difference(today).inDays;
-    if (diff == 0) return 'Oggi';
-    if (diff == 1) return 'Domani';
+    if (diff == 0) return l10n.today;
+    if (diff == 1) return l10n.tomorrow;
     return DateFormat('yyyy-MM-dd').format(date);
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final searching = _query.isNotEmpty;
     return PopScope(
       canPop: !searching,
@@ -142,7 +145,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         if (!didPop && searching) _exitSearch();
       },
       child: Scaffold(
+        endDrawer: AppDrawer(authService: widget.authService),
         appBar: AppBar(
+          titleSpacing: 8,
           leading: searching
               ? IconButton(
                   icon: const Icon(Icons.arrow_back),
@@ -153,10 +158,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             key: ValueKey(_searchFieldGeneration),
             onQueryChanged: (query) => setState(() => _query = query),
           ),
-          actions: [
-            const UpdateIndicatorButton(),
-            SignOutButton(authService: widget.authService),
-          ],
+          actions: const [UpdateIndicatorButton(), AccountMenuButton()],
         ),
         body: searching
             ? SearchResultsList(
@@ -172,25 +174,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasError) {
-                    return Center(child: Text('Errore: ${snapshot.error}'));
+                    return Center(
+                      child: Text(l10n.errorPrefix(snapshot.error.toString())),
+                    );
                   }
                   final items = snapshot.data!;
                   if (items.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'Nessuna uscita imminente per la tua watchlist',
-                      ),
-                    );
+                    return Center(child: Text(l10n.noUpcomingReleases));
                   }
                   return ListView.builder(
                     itemCount: items.length,
                     itemBuilder: (context, index) {
                       final item = items[index];
+                      final subtitle = item.subtitle == '__MOVIE_RELEASE__'
+                          ? l10n.movieRelease
+                          : item.subtitle;
                       return PosterListTile(
                         posterPath: item.posterPath,
                         title: item.title,
                         subtitle:
-                            '${_formatDate(item.date)} • ${item.subtitle}',
+                            '${_formatDate(context, item.date)} • $subtitle',
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => DetailScreen(
