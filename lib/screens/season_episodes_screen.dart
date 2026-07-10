@@ -28,12 +28,16 @@ class SeasonEpisodesScreen extends StatefulWidget {
 }
 
 class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
-  late final Future<List<Episode>> _episodesFuture;
+  late Future<List<Episode>> _episodesFuture;
   List<Episode>? _loadedEpisodes;
 
   @override
   void initState() {
     super.initState();
+    _loadEpisodes();
+  }
+
+  void _loadEpisodes() {
     _episodesFuture = widget.tmdbClient.getSeasonEpisodes(
       widget.showId,
       widget.seasonNumber,
@@ -46,6 +50,15 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
     });
   }
 
+  /// Pull-to-refresh: forces a fresh TMDB fetch for this season instead of
+  /// reusing [TmdbClient]'s cache, in case something changed upstream (a
+  /// new episode announced, a corrected air date).
+  Future<void> _refresh() async {
+    widget.tmdbClient.clearCache();
+    setState(_loadEpisodes);
+    await _episodesFuture;
+  }
+
   Future<void> _toggleWatched(WatchedEpisodeId id, bool checked) async {
     try {
       if (checked) {
@@ -56,9 +69,9 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorPrefix(e.toString()))));
     }
   }
 
@@ -68,9 +81,9 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorPrefix(e.toString()))));
     }
   }
 
@@ -86,9 +99,9 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorPrefix(e.toString()))));
     }
   }
 
@@ -97,7 +110,9 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.seasonAppBarTitle(widget.showName, widget.seasonNumber)),
+        title: Text(
+          l10n.seasonAppBarTitle(widget.showName, widget.seasonNumber),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.playlist_add_check),
@@ -124,48 +139,53 @@ class _SeasonEpisodesScreenState extends State<SeasonEpisodesScreen> {
             ),
             builder: (context, watchedSnapshot) {
               final watched = watchedSnapshot.data ?? const {};
-              return ListView.builder(
-                itemCount: episodes.length,
-                itemBuilder: (context, index) {
-                  final episode = episodes[index];
-                  final id = WatchedEpisodeId(
-                    showId: widget.showId,
-                    season: widget.seasonNumber,
-                    episode: episode.episodeNumber,
-                  );
-                  final isWatched = watched.containsKey(id);
-                  final isRewatched = watched[id] ?? false;
-                  final aired = hasAired(episode);
-                  return CheckboxListTile(
-                    value: isWatched,
-                    controlAffinity: ListTileControlAffinity.leading,
-                    title: Text('${episode.episodeNumber}. ${episode.name}'),
-                    subtitle: Text(
-                      episode.airDate == null
-                          ? l10n.unknownAirDate
-                          : aired
-                          ? DateFormat('yyyy-MM-dd').format(episode.airDate!)
-                          : l10n.notYetAiredDate(
-                              DateFormat('yyyy-MM-dd').format(episode.airDate!),
-                            ),
-                    ),
-                    secondary: IconButton(
-                      icon: Icon(
-                        Icons.replay_circle_filled,
-                        color: isRewatched
-                            ? Theme.of(context).colorScheme.primary
+              return RefreshIndicator(
+                onRefresh: _refresh,
+                child: ListView.builder(
+                  itemCount: episodes.length,
+                  itemBuilder: (context, index) {
+                    final episode = episodes[index];
+                    final id = WatchedEpisodeId(
+                      showId: widget.showId,
+                      season: widget.seasonNumber,
+                      episode: episode.episodeNumber,
+                    );
+                    final isWatched = watched.containsKey(id);
+                    final isRewatched = watched[id] ?? false;
+                    final aired = hasAired(episode);
+                    return CheckboxListTile(
+                      value: isWatched,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text('${episode.episodeNumber}. ${episode.name}'),
+                      subtitle: Text(
+                        episode.airDate == null
+                            ? l10n.unknownAirDate
+                            : aired
+                            ? DateFormat('yyyy-MM-dd').format(episode.airDate!)
+                            : l10n.notYetAiredDate(
+                                DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(episode.airDate!),
+                              ),
+                      ),
+                      secondary: IconButton(
+                        icon: Icon(
+                          Icons.replay_circle_filled,
+                          color: isRewatched
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                        tooltip: l10n.rewatched,
+                        onPressed: isWatched
+                            ? () => _toggleRewatched(id, !isRewatched)
                             : null,
                       ),
-                      tooltip: l10n.rewatched,
-                      onPressed: isWatched
-                          ? () => _toggleRewatched(id, !isRewatched)
+                      onChanged: aired
+                          ? (checked) => _toggleWatched(id, checked == true)
                           : null,
-                    ),
-                    onChanged: aired
-                        ? (checked) => _toggleWatched(id, checked == true)
-                        : null,
-                  );
-                },
+                    );
+                  },
+                ),
               );
             },
           );
