@@ -52,11 +52,10 @@ class _DetailScreenState extends State<DetailScreen> {
   Future<void> _load() async {
     try {
       if (widget.mediaType == MediaType.tv) {
-        final details = await widget.tmdbClient.getTvShowDetails(
+        final details = await widget.tmdbClient.getTvShowDetails(widget.tmdbId);
+        final inWatchlist = await widget.watchlistRepository.isShowInWatchlist(
           widget.tmdbId,
         );
-        final inWatchlist = await widget.watchlistRepository
-            .isShowInWatchlist(widget.tmdbId);
         if (!mounted) return;
         setState(() {
           _showDetails = details;
@@ -65,11 +64,10 @@ class _DetailScreenState extends State<DetailScreen> {
         });
         await _refreshProgress();
       } else {
-        final details = await widget.tmdbClient.getMovieDetails(
+        final details = await widget.tmdbClient.getMovieDetails(widget.tmdbId);
+        final inWatchlist = await widget.watchlistRepository.isMovieInWatchlist(
           widget.tmdbId,
         );
-        final inWatchlist = await widget.watchlistRepository
-            .isMovieInWatchlist(widget.tmdbId);
         final watched = await widget.watchedRepository.isMovieWatched(
           widget.tmdbId,
         );
@@ -90,6 +88,14 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
+  /// Pull-to-refresh: forces a fresh TMDB fetch instead of reusing
+  /// [TmdbClient]'s cache, in case something changed upstream (new
+  /// episode announced, corrected air date, status change).
+  Future<void> _refresh() async {
+    widget.tmdbClient.clearCache();
+    await _load();
+  }
+
   Future<void> _toggleWatchlist() async {
     final adding = !_inWatchlist;
     setState(() => _inWatchlist = adding);
@@ -107,9 +113,9 @@ class _DetailScreenState extends State<DetailScreen> {
       if (!mounted) return;
       setState(() => _inWatchlist = !adding);
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorPrefix(e.toString()))));
     }
   }
 
@@ -124,9 +130,9 @@ class _DetailScreenState extends State<DetailScreen> {
       if (!mounted) return;
       setState(() => _isWatched = !watching);
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorPrefix(e.toString()))));
     }
   }
 
@@ -162,9 +168,9 @@ class _DetailScreenState extends State<DetailScreen> {
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorPrefix(e.toString()))));
     }
   }
 
@@ -183,9 +189,9 @@ class _DetailScreenState extends State<DetailScreen> {
     } catch (e) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.errorPrefix(e.toString()))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.errorPrefix(e.toString()))));
     }
   }
 
@@ -193,9 +199,7 @@ class _DetailScreenState extends State<DetailScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (_error != null) {
       return Scaffold(
@@ -236,158 +240,159 @@ class _DetailScreenState extends State<DetailScreen> {
           ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: 100,
-                height: 150,
-                child: posterPath == null
-                    ? const ColoredBox(color: Color(0xFFE0E0E0))
-                    : Image.network(
-                        'https://image.tmdb.org/t/p/w300$posterPath',
-                        fit: BoxFit.cover,
-                      ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: _toggleWatchlist,
-                      icon: Icon(
-                        _inWatchlist ? Icons.check : Icons.add,
-                      ),
-                      label: Text(
-                        _inWatchlist ? l10n.inWatchlist : l10n.addToWatchlist,
-                      ),
-                    ),
-                    if (widget.mediaType == MediaType.movie) ...[
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        onPressed: _toggleMovieWatched,
-                        icon: Icon(
-                          _isWatched
-                              ? Icons.visibility
-                              : Icons.visibility_outlined,
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 100,
+                  height: 150,
+                  child: posterPath == null
+                      ? const ColoredBox(color: Color(0xFFE0E0E0))
+                      : Image.network(
+                          'https://image.tmdb.org/t/p/w300$posterPath',
+                          fit: BoxFit.cover,
                         ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: _toggleWatchlist,
+                        icon: Icon(_inWatchlist ? Icons.check : Icons.add),
                         label: Text(
-                          _isWatched ? l10n.watched : l10n.markAsWatched,
+                          _inWatchlist ? l10n.inWatchlist : l10n.addToWatchlist,
                         ),
                       ),
+                      if (widget.mediaType == MediaType.movie) ...[
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: _toggleMovieWatched,
+                          icon: Icon(
+                            _isWatched
+                                ? Icons.visibility
+                                : Icons.visibility_outlined,
+                          ),
+                          label: Text(
+                            _isWatched ? l10n.watched : l10n.markAsWatched,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(overview),
-          if (_showDetails != null) ...[
-            const SizedBox(height: 16),
-            if (_progress case final progress?) ...[
-              Text(
-                l10n.watchedCount(progress.watchedCount, progress.airedCount),
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              if (progress.nextToWatch case final next?)
-                Card(
-                  child: ListTile(
-                    title: Text(l10n.nextEpisode),
-                    subtitle: Text(
-                      'S${next.seasonNumber.toString().padLeft(2, '0')}'
-                      'E${next.episodeNumber.toString().padLeft(2, '0')} - ${next.name}'
-                      '${next.airDate == null ? '' : ' (${DateFormat('yyyy-MM-dd').format(next.airDate!)})'}',
-                    ),
-                    trailing: FilledButton(
-                      onPressed: () => _markNextEpisodeWatched(next),
-                      child: Text(l10n.markWatched),
-                    ),
-                  ),
-                )
-              else if (_showDetails!.nextEpisodeToAir case final upcoming?)
-                Card(
-                  child: ListTile(
-                    title: Text(l10n.youAreCaughtUp),
-                    subtitle: Text(
-                      l10n.nextEpisodeSubtitle(
-                        'S${upcoming.seasonNumber.toString().padLeft(2, '0')}'
-                        'E${upcoming.episodeNumber.toString().padLeft(2, '0')} - ${upcoming.name}'
-                        '${upcoming.airDate == null ? '' : ' (${DateFormat('yyyy-MM-dd').format(upcoming.airDate!)})'}',
-                      ),
-                    ),
-                  ),
-                )
-              else
-                Text(l10n.caughtUpWithEverythingAired),
-            ],
-            const SizedBox(height: 16),
-            Text(
-              l10n.seasons,
-              style: Theme.of(context).textTheme.titleMedium,
+              ],
             ),
-            ..._showDetails!.seasons.map((season) {
-              final watchedInSeason =
-                  _progress?.watchedCountBySeason[season.seasonNumber];
-              final subtitle = watchedInSeason == null
-                  ? l10n.episodeCount(season.episodeCount)
-                  : l10n.watchedCount(watchedInSeason, season.episodeCount);
-              final isComplete =
-                  _progress?.isSeasonComplete(
-                    season.seasonNumber,
-                    season.episodeCount,
-                  ) ??
-                  false;
-              final isCaughtUpButOngoing =
-                  _progress?.isSeasonCaughtUpButOngoing(
-                    season.seasonNumber,
-                    season.episodeCount,
-                  ) ??
-                  false;
-              return ListTile(
-                leading: isComplete
-                    ? const Icon(Icons.check_circle, color: Colors.green)
-                    : isCaughtUpButOngoing
-                    ? const CaughtUpIndicator()
-                    : null,
-                title: Text(season.name),
-                subtitle: Text(subtitle),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.playlist_add_check),
-                      tooltip: l10n.markSeasonWatched,
-                      onPressed: () => _markSeasonWatchedFromSummary(season),
-                    ),
-                    const Icon(Icons.chevron_right),
-                  ],
+            const SizedBox(height: 16),
+            Text(overview),
+            if (_showDetails != null) ...[
+              const SizedBox(height: 16),
+              if (_progress case final progress?) ...[
+                Text(
+                  l10n.watchedCount(progress.watchedCount, progress.airedCount),
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
-                onTap: () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => SeasonEpisodesScreen(
-                        showId: widget.tmdbId,
-                        showName: _showDetails!.name,
-                        seasonNumber: season.seasonNumber,
-                        tmdbClient: widget.tmdbClient,
-                        watchedRepository: widget.watchedRepository,
+                const SizedBox(height: 8),
+                if (progress.nextToWatch case final next?)
+                  Card(
+                    child: ListTile(
+                      title: Text(l10n.nextEpisode),
+                      subtitle: Text(
+                        'S${next.seasonNumber.toString().padLeft(2, '0')}'
+                        'E${next.episodeNumber.toString().padLeft(2, '0')} - ${next.name}'
+                        '${next.airDate == null ? '' : ' (${DateFormat('yyyy-MM-dd').format(next.airDate!)})'}',
+                      ),
+                      trailing: FilledButton(
+                        onPressed: () => _markNextEpisodeWatched(next),
+                        child: Text(l10n.markWatched),
                       ),
                     ),
-                  );
-                  // The user may have marked episodes watched/rewatched
-                  // inside the season screen; refresh counts on return.
-                  await _refreshProgress();
-                },
-              );
-            }),
+                  )
+                else if (_showDetails!.nextEpisodeToAir case final upcoming?)
+                  Card(
+                    child: ListTile(
+                      title: Text(l10n.youAreCaughtUp),
+                      subtitle: Text(
+                        l10n.nextEpisodeSubtitle(
+                          'S${upcoming.seasonNumber.toString().padLeft(2, '0')}'
+                          'E${upcoming.episodeNumber.toString().padLeft(2, '0')} - ${upcoming.name}'
+                          '${upcoming.airDate == null ? '' : ' (${DateFormat('yyyy-MM-dd').format(upcoming.airDate!)})'}',
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Text(l10n.caughtUpWithEverythingAired),
+              ],
+              const SizedBox(height: 16),
+              Text(
+                l10n.seasons,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              ..._showDetails!.seasons.map((season) {
+                final watchedInSeason =
+                    _progress?.watchedCountBySeason[season.seasonNumber];
+                final subtitle = watchedInSeason == null
+                    ? l10n.episodeCount(season.episodeCount)
+                    : l10n.watchedCount(watchedInSeason, season.episodeCount);
+                final isComplete =
+                    _progress?.isSeasonComplete(
+                      season.seasonNumber,
+                      season.episodeCount,
+                    ) ??
+                    false;
+                final isCaughtUpButOngoing =
+                    _progress?.isSeasonCaughtUpButOngoing(
+                      season.seasonNumber,
+                      season.episodeCount,
+                    ) ??
+                    false;
+                return ListTile(
+                  leading: isComplete
+                      ? const Icon(Icons.check_circle, color: Colors.green)
+                      : isCaughtUpButOngoing
+                      ? const CaughtUpIndicator()
+                      : null,
+                  title: Text(season.name),
+                  subtitle: Text(subtitle),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.playlist_add_check),
+                        tooltip: l10n.markSeasonWatched,
+                        onPressed: () => _markSeasonWatchedFromSummary(season),
+                      ),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
+                  onTap: () async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => SeasonEpisodesScreen(
+                          showId: widget.tmdbId,
+                          showName: _showDetails!.name,
+                          seasonNumber: season.seasonNumber,
+                          tmdbClient: widget.tmdbClient,
+                          watchedRepository: widget.watchedRepository,
+                        ),
+                      ),
+                    );
+                    // The user may have marked episodes watched/rewatched
+                    // inside the season screen; refresh counts on return.
+                    await _refreshProgress();
+                  },
+                );
+              }),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

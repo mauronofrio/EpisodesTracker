@@ -247,6 +247,129 @@ void main() {
     });
   });
 
+  group('TmdbClient caching', () {
+    test('getTvShowDetails only hits the network once per id', () async {
+      var callCount = 0;
+      final mockClient = MockClient((request) async {
+        callCount++;
+        return http.Response(
+          jsonEncode({
+            'id': 1399,
+            'name': 'Game of Thrones',
+            'overview': '',
+            'poster_path': null,
+            'backdrop_path': null,
+            'number_of_seasons': 8,
+            'number_of_episodes': 73,
+            'status': 'Ended',
+            'next_episode_to_air': null,
+            'last_episode_to_air': null,
+            'seasons': [],
+          }),
+          200,
+        );
+      });
+      final client = TmdbClient(
+        httpClient: mockClient,
+        readAccessToken: 'test-token',
+      );
+
+      await client.getTvShowDetails(1399);
+      await client.getTvShowDetails(1399);
+
+      expect(callCount, 1);
+    });
+
+    test('getMovieDetails only hits the network once per id', () async {
+      var callCount = 0;
+      final mockClient = MockClient((request) async {
+        callCount++;
+        return http.Response(
+          jsonEncode({
+            'id': 550,
+            'title': 'Fight Club',
+            'overview': '',
+            'poster_path': null,
+            'backdrop_path': null,
+            'release_date': '1999-10-15',
+            'runtime': 139,
+            'status': 'Released',
+          }),
+          200,
+        );
+      });
+      final client = TmdbClient(
+        httpClient: mockClient,
+        readAccessToken: 'test-token',
+      );
+
+      await client.getMovieDetails(550);
+      await client.getMovieDetails(550);
+
+      expect(callCount, 1);
+    });
+
+    test(
+      'getSeasonEpisodes only hits the network once per show/season pair',
+      () async {
+        var callCount = 0;
+        final mockClient = MockClient((request) async {
+          callCount++;
+          return http.Response(
+            jsonEncode({
+              'air_date': '2022-08-21',
+              'name': 'Season 1',
+              'season_number': 1,
+              'episodes': [],
+            }),
+            200,
+          );
+        });
+        final client = TmdbClient(
+          httpClient: mockClient,
+          readAccessToken: 'test-token',
+        );
+
+        await client.getSeasonEpisodes(94997, 1);
+        await client.getSeasonEpisodes(94997, 1);
+        // A different season is a cache miss, not reused.
+        await client.getSeasonEpisodes(94997, 2);
+
+        expect(callCount, 2);
+      },
+    );
+
+    test('clearCache forces the next call to hit the network again', () async {
+      var callCount = 0;
+      final mockClient = MockClient((request) async {
+        callCount++;
+        return http.Response(
+          jsonEncode({
+            'id': 550,
+            'title': 'Fight Club',
+            'overview': '',
+            'poster_path': null,
+            'backdrop_path': null,
+            'release_date': '1999-10-15',
+            'runtime': 139,
+            'status': 'Released',
+          }),
+          200,
+        );
+      });
+      final client = TmdbClient(
+        httpClient: mockClient,
+        readAccessToken: 'test-token',
+      );
+
+      await client.getMovieDetails(550);
+      client.clearCache();
+      await client.getMovieDetails(550);
+
+      expect(callCount, 2);
+    });
+  });
+
   group('TmdbClient.close', () {
     test('closes the underlying http client', () {
       final mockHttpClient = MockHttpClient();

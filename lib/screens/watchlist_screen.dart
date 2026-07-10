@@ -130,6 +130,13 @@ class _WatchlistShowsTab extends StatefulWidget {
 }
 
 class _WatchlistShowsTabState extends State<_WatchlistShowsTab> {
+  /// Pull-to-refresh: forces a fresh TMDB fetch for every show in the tab
+  /// instead of reusing [TmdbClient]'s cache.
+  Future<void> _refresh() async {
+    widget.tmdbClient.clearCache();
+    setState(() {});
+  }
+
   Future<void> _openDetail(BuildContext context, int showId) async {
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -176,47 +183,50 @@ class _WatchlistShowsTabState extends State<_WatchlistShowsTab> {
             final shows = detailsSnapshot.data!
                 .whereType<TvShowDetails>()
                 .toList();
-            return ListView.builder(
-              itemCount: shows.length,
-              itemBuilder: (context, index) {
-                final show = shows[index];
-                return FutureBuilder<ShowProgress>(
-                  future: computeShowProgress(
-                    tmdbClient: widget.tmdbClient,
-                    watchedRepository: widget.watchedRepository,
-                    show: show,
-                  ),
-                  builder: (context, progressSnapshot) {
-                    final progress = progressSnapshot.data;
-                    final subtitle = progress == null
-                        ? show.status
-                        : l10n.watchedCount(
-                            progress.watchedCount,
-                            progress.airedCount,
-                          );
-                    final isComplete =
-                        progress?.isShowComplete(show.seasons) ?? false;
-                    final isCaughtUpButOngoing =
-                        progress?.isShowCaughtUpButOngoing(show.seasons) ??
-                        false;
-                    return PosterListTile(
-                      posterPath: show.posterPath,
-                      title: show.name,
-                      subtitle: subtitle,
-                      titleSuffix: isComplete
-                          ? const Icon(
-                              Icons.check_circle,
-                              color: Colors.green,
-                              size: 18,
-                            )
-                          : isCaughtUpButOngoing
-                          ? const CaughtUpIndicator(size: 18)
-                          : null,
-                      onTap: () => _openDetail(context, show.id),
-                    );
-                  },
-                );
-              },
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView.builder(
+                itemCount: shows.length,
+                itemBuilder: (context, index) {
+                  final show = shows[index];
+                  return FutureBuilder<ShowProgress>(
+                    future: computeShowProgress(
+                      tmdbClient: widget.tmdbClient,
+                      watchedRepository: widget.watchedRepository,
+                      show: show,
+                    ),
+                    builder: (context, progressSnapshot) {
+                      final progress = progressSnapshot.data;
+                      final subtitle = progress == null
+                          ? show.status
+                          : l10n.watchedCount(
+                              progress.watchedCount,
+                              progress.airedCount,
+                            );
+                      final isComplete =
+                          progress?.isShowComplete(show.seasons) ?? false;
+                      final isCaughtUpButOngoing =
+                          progress?.isShowCaughtUpButOngoing(show.seasons) ??
+                          false;
+                      return PosterListTile(
+                        posterPath: show.posterPath,
+                        title: show.name,
+                        subtitle: subtitle,
+                        titleSuffix: isComplete
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 18,
+                              )
+                            : isCaughtUpButOngoing
+                            ? const CaughtUpIndicator(size: 18)
+                            : null,
+                        onTap: () => _openDetail(context, show.id),
+                      );
+                    },
+                  );
+                },
+              ),
             );
           },
         );
@@ -225,7 +235,7 @@ class _WatchlistShowsTabState extends State<_WatchlistShowsTab> {
   }
 }
 
-class _WatchlistMoviesTab extends StatelessWidget {
+class _WatchlistMoviesTab extends StatefulWidget {
   final TmdbClient tmdbClient;
   final WatchlistRepository watchlistRepository;
   final WatchedRepository watchedRepository;
@@ -237,10 +247,22 @@ class _WatchlistMoviesTab extends StatelessWidget {
   });
 
   @override
+  State<_WatchlistMoviesTab> createState() => _WatchlistMoviesTabState();
+}
+
+class _WatchlistMoviesTabState extends State<_WatchlistMoviesTab> {
+  /// Pull-to-refresh: forces a fresh TMDB fetch for every movie in the tab
+  /// instead of reusing [TmdbClient]'s cache.
+  Future<void> _refresh() async {
+    widget.tmdbClient.clearCache();
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return StreamBuilder<List<int>>(
-      stream: watchlistRepository.watchMovieIds(),
+      stream: widget.watchlistRepository.watchMovieIds(),
       builder: (context, idsSnapshot) {
         final ids = idsSnapshot.data ?? [];
         if (ids.isEmpty) {
@@ -248,7 +270,9 @@ class _WatchlistMoviesTab extends StatelessWidget {
         }
         return FutureBuilder<List<MovieDetails?>>(
           future: Future.wait(
-            ids.map((id) => fetchOrNull(() => tmdbClient.getMovieDetails(id))),
+            ids.map(
+              (id) => fetchOrNull(() => widget.tmdbClient.getMovieDetails(id)),
+            ),
           ),
           builder: (context, detailsSnapshot) {
             if (detailsSnapshot.hasError) {
@@ -262,27 +286,30 @@ class _WatchlistMoviesTab extends StatelessWidget {
             final movies = detailsSnapshot.data!
                 .whereType<MovieDetails>()
                 .toList();
-            return ListView.builder(
-              itemCount: movies.length,
-              itemBuilder: (context, index) {
-                final movie = movies[index];
-                return PosterListTile(
-                  posterPath: movie.posterPath,
-                  title: movie.title,
-                  subtitle: movie.status,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => DetailScreen(
-                        tmdbId: movie.id,
-                        mediaType: MediaType.movie,
-                        tmdbClient: tmdbClient,
-                        watchlistRepository: watchlistRepository,
-                        watchedRepository: watchedRepository,
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView.builder(
+                itemCount: movies.length,
+                itemBuilder: (context, index) {
+                  final movie = movies[index];
+                  return PosterListTile(
+                    posterPath: movie.posterPath,
+                    title: movie.title,
+                    subtitle: movie.status,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => DetailScreen(
+                          tmdbId: movie.id,
+                          mediaType: MediaType.movie,
+                          tmdbClient: widget.tmdbClient,
+                          watchlistRepository: widget.watchlistRepository,
+                          watchedRepository: widget.watchedRepository,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             );
           },
         );

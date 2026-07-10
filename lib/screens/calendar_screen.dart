@@ -71,6 +71,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
   }
 
+  /// Pull-to-refresh: forces a fresh TMDB fetch for every watchlist item
+  /// instead of reusing [TmdbClient]'s cache.
+  Future<void> _refresh() async {
+    widget.tmdbClient.clearCache();
+    setState(() {
+      _future = _loadUpcoming();
+    });
+    await _future;
+  }
+
   Future<List<_UpcomingItem>> _loadUpcoming() async {
     final showIds = await widget.watchlistRepository.watchShowIds().first;
     final movieIds = await widget.watchlistRepository.watchMovieIds().first;
@@ -184,31 +194,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   if (items.isEmpty) {
                     return Center(child: Text(l10n.noUpcomingReleases));
                   }
-                  return ListView.builder(
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      final subtitle = item.subtitle == '__MOVIE_RELEASE__'
-                          ? l10n.movieRelease
-                          : item.subtitle;
-                      return PosterListTile(
-                        posterPath: item.posterPath,
-                        title: item.title,
-                        subtitle:
-                            '${_formatDate(context, item.date)} • $subtitle',
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => DetailScreen(
-                              tmdbId: item.tmdbId,
-                              mediaType: item.mediaType,
-                              tmdbClient: widget.tmdbClient,
-                              watchlistRepository: widget.watchlistRepository,
-                              watchedRepository: widget.watchedRepository,
+                  return RefreshIndicator(
+                    onRefresh: _refresh,
+                    child: ListView.builder(
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        final subtitle = item.subtitle == '__MOVIE_RELEASE__'
+                            ? l10n.movieRelease
+                            : item.subtitle;
+                        return PosterListTile(
+                          posterPath: item.posterPath,
+                          title: item.title,
+                          subtitle:
+                              '${_formatDate(context, item.date)} • $subtitle',
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => DetailScreen(
+                                tmdbId: item.tmdbId,
+                                mediaType: item.mediaType,
+                                tmdbClient: widget.tmdbClient,
+                                watchlistRepository: widget.watchlistRepository,
+                                watchedRepository: widget.watchedRepository,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   );
                 },
               ),

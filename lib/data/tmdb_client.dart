@@ -18,10 +18,23 @@ class TmdbException implements Exception {
 
 /// Thin wrapper around TMDB's v3 REST API using a v4 read-access Bearer
 /// token. Only the endpoints this app needs are implemented.
+///
+/// Show/movie details and season episode lists are cached in memory for
+/// this client's lifetime (one instance per signed-in session, shared by
+/// every screen - see `app.dart`). Progress computation
+/// ([show_progress.dart]'s `computeShowProgress`) re-reads the same
+/// season's episode list every time an episode is marked watched even
+/// though the episode list itself hasn't changed; without this cache that
+/// meant a full round-trip to TMDB for every season on every toggle. Call
+/// [clearCache] (wired to a pull-to-refresh gesture) to force fresh data.
 class TmdbClient {
   final http.Client _httpClient;
   final String _readAccessToken;
   static const _baseUrl = 'https://api.themoviedb.org/3';
+
+  final Map<int, TvShowDetails> _showDetailsCache = {};
+  final Map<int, MovieDetails> _movieDetailsCache = {};
+  final Map<String, List<Episode>> _seasonEpisodesCache = {};
 
   TmdbClient({
     required http.Client httpClient,
@@ -60,21 +73,45 @@ class TmdbClient {
   }
 
   Future<TvShowDetails> getTvShowDetails(int id) async {
+    final cached = _showDetailsCache[id];
+    if (cached != null) return cached;
     final json = await _getJson('/tv/$id');
-    return TvShowDetails.fromJson(json);
+    final details = TvShowDetails.fromJson(json);
+    _showDetailsCache[id] = details;
+    return details;
   }
 
   Future<MovieDetails> getMovieDetails(int id) async {
+    final cached = _movieDetailsCache[id];
+    if (cached != null) return cached;
     final json = await _getJson('/movie/$id');
-    return MovieDetails.fromJson(json);
+    final details = MovieDetails.fromJson(json);
+    _movieDetailsCache[id] = details;
+    return details;
   }
 
   Future<List<Episode>> getSeasonEpisodes(int showId, int seasonNumber) async {
+    final cacheKey = '${showId}_$seasonNumber';
+    final cached = _seasonEpisodesCache[cacheKey];
+    if (cached != null) return cached;
     final json = await _getJson('/tv/$showId/season/$seasonNumber');
-    final episodes = json['episodes'] as List<dynamic>? ?? [];
-    return episodes
+    final episodesJson = json['episodes'] as List<dynamic>? ?? [];
+    final episodes = episodesJson
         .map((e) => Episode.fromJson(e as Map<String, dynamic>))
         .toList();
+    _seasonEpisodesCache[cacheKey] = episodes;
+    return episodes;
+  }
+
+  /// Wipes every cached response, so the next call to any getter above
+  /// re-fetches from TMDB. Wired to pull-to-refresh gestures rather than
+  /// any automatic expiry - this is a personal, single-device-per-user
+  /// app, so a time-based cache invalidation strategy would add
+  /// complexity without a real benefit here.
+  void clearCache() {
+    _showDetailsCache.clear();
+    _movieDetailsCache.clear();
+    _seasonEpisodesCache.clear();
   }
 
   /// Closes the underlying HTTP client, releasing its connection pool.
