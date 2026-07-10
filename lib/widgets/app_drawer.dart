@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../auth/auth_service.dart';
 import '../config/locale_controller.dart';
 import '../l10n/app_localizations.dart';
+import 'home_drawer_scope.dart';
 
 /// Account menu opened from [AccountMenuButton]: signed-in account info, a
 /// link to the project's GitHub repo, the IT/EN language switch, and
@@ -103,18 +104,30 @@ class AppDrawer extends StatelessWidget {
   }
 }
 
-/// AppBar action that opens [AppDrawer] (registered as the Scaffold's
-/// `endDrawer`) instead of signing out directly.
+/// AppBar action that opens [AppDrawer] (registered as HomeShell's single
+/// `endDrawer`, reached via [HomeDrawerScope] rather than
+/// `Scaffold.of(context)` since this button lives inside a tab's own
+/// nested Scaffold, not HomeShell's). Shows the signed-in account's Google
+/// profile photo when available, falling back to a generic account icon.
 class AccountMenuButton extends StatelessWidget {
-  const AccountMenuButton({super.key});
+  final AuthService authService;
+
+  const AccountMenuButton({super.key, required this.authService});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final photoURL = authService.currentUser?.photoURL;
     return IconButton(
-      icon: const Icon(Icons.account_circle),
+      icon: photoURL == null
+          ? const Icon(Icons.account_circle)
+          : CircleAvatar(
+              radius: 14,
+              backgroundImage: NetworkImage(photoURL),
+              onBackgroundImageError: (_, _) {},
+            ),
       tooltip: l10n.account,
-      onPressed: () => Scaffold.of(context).openEndDrawer(),
+      onPressed: HomeDrawerScope.of(context),
     );
   }
 }

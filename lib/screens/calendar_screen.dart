@@ -145,7 +145,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
         if (!didPop && searching) _exitSearch();
       },
       child: Scaffold(
-        endDrawer: AppDrawer(authService: widget.authService),
         appBar: AppBar(
           titleSpacing: 8,
           leading: searching
@@ -158,7 +157,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
             key: ValueKey(_searchFieldGeneration),
             onQueryChanged: (query) => setState(() => _query = query),
           ),
-          actions: const [UpdateIndicatorButton(), AccountMenuButton()],
+          actions: [
+            const UpdateIndicatorButton(),
+            AccountMenuButton(authService: widget.authService),
+          ],
         ),
         body: searching
             ? SearchResultsList(

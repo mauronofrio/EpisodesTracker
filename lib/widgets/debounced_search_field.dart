@@ -62,8 +62,10 @@ class _DebouncedSearchFieldState extends State<DebouncedSearchField> {
           borderRadius: BorderRadius.circular(24),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
         suffixIcon: _controller.text.isEmpty
             ? null
             : IconButton(icon: const Icon(Icons.clear), onPressed: _clear),

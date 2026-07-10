@@ -62,7 +62,6 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
-          endDrawer: AppDrawer(authService: widget.authService),
           appBar: AppBar(
             titleSpacing: 8,
             leading: searching
@@ -75,7 +74,10 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
               key: ValueKey(_searchFieldGeneration),
               onQueryChanged: (query) => setState(() => _query = query),
             ),
-            actions: const [UpdateIndicatorButton(), AccountMenuButton()],
+            actions: [
+              const UpdateIndicatorButton(),
+              AccountMenuButton(authService: widget.authService),
+            ],
             bottom: searching
                 ? null
                 : TabBar(
