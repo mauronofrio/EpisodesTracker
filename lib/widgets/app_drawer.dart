@@ -120,9 +120,9 @@ class AccountMenuButton extends StatelessWidget {
     final photoURL = authService.currentUser?.photoURL;
     return IconButton(
       icon: photoURL == null
-          ? const Icon(Icons.account_circle)
+          ? const Icon(Icons.account_circle, size: 30)
           : CircleAvatar(
-              radius: 14,
+              radius: 15,
               backgroundImage: NetworkImage(photoURL),
               onBackgroundImageError: (_, _) {},
             ),
