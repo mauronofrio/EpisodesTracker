@@ -34,18 +34,38 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _watchlistKey = GlobalKey<WatchlistScreenState>();
+  final _calendarKey = GlobalKey<CalendarScreenState>();
+
+  void _onDestinationSelected(int index) {
+    if (index != _index) {
+      // Both tabs stay alive the whole time (see the IndexedStack below),
+      // so nothing else closes a search left open on the tab we're
+      // leaving - do it here, at the one moment that actually knows a
+      // switch is happening, instead of the leaving tab trying to detect
+      // it reactively.
+      if (_index == 0) {
+        _watchlistKey.currentState?.exitSearchIfOpen();
+      } else {
+        _calendarKey.currentState?.exitSearchIfOpen();
+      }
+    }
+    setState(() => _index = index);
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final screens = [
       WatchlistScreen(
+        key: _watchlistKey,
         authService: widget.authService,
         tmdbClient: widget.tmdbClient,
         watchlistRepository: widget.watchlistRepository,
         watchedRepository: widget.watchedRepository,
       ),
       CalendarScreen(
+        key: _calendarKey,
         authService: widget.authService,
         tmdbClient: widget.tmdbClient,
         watchlistRepository: widget.watchlistRepository,
@@ -64,7 +84,7 @@ class _HomeShellState extends State<HomeShell> {
         body: IndexedStack(index: _index, children: screens),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _index,
-          onDestinationSelected: (index) => setState(() => _index = index),
+          onDestinationSelected: _onDestinationSelected,
           destinations: [
             const NavigationDestination(
               icon: Icon(Icons.bookmark),

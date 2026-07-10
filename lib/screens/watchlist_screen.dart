@@ -33,10 +33,10 @@ class WatchlistScreen extends StatefulWidget {
   });
 
   @override
-  State<WatchlistScreen> createState() => _WatchlistScreenState();
+  State<WatchlistScreen> createState() => WatchlistScreenState();
 }
 
-class _WatchlistScreenState extends State<WatchlistScreen> {
+class WatchlistScreenState extends State<WatchlistScreen> {
   String _query = '';
   // Bumped to force DebouncedSearchField to rebuild with a fresh, empty
   // TextEditingController when search is dismissed via the back arrow/
@@ -48,6 +48,14 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
       _query = '';
       _searchFieldGeneration++;
     });
+  }
+
+  /// Called by [HomeShell] (via GlobalKey) the moment the user switches to
+  /// the other bottom-nav tab, so an open search doesn't linger and
+  /// silently reopen when they come back - HomeShell keeps every tab alive
+  /// (see its IndexedStack), so nothing else would ever close this.
+  void exitSearchIfOpen() {
+    if (_query.isNotEmpty) _exitSearch();
   }
 
   @override
@@ -78,14 +86,23 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
               const UpdateIndicatorButton(),
               AccountMenuButton(authService: widget.authService),
             ],
-            bottom: searching
-                ? null
-                : TabBar(
-                    tabs: [
-                      Tab(text: l10n.tabShows),
-                      Tab(text: l10n.tabMovies),
-                    ],
-                  ),
+            // AppBar tears down and rebuilds its whole subtree - including
+            // `title` (the search field) - whenever `bottom` toggles
+            // between null and a widget, which was wiping out whatever
+            // the user had typed the instant a search actually started.
+            // Keeping `bottom` a stable PreferredSize (only its content and
+            // height change) avoids that null<->non-null flip entirely.
+            bottom: PreferredSize(
+              preferredSize: Size.fromHeight(searching ? 0 : kTextTabBarHeight),
+              child: searching
+                  ? const SizedBox.shrink()
+                  : TabBar(
+                      tabs: [
+                        Tab(text: l10n.tabShows),
+                        Tab(text: l10n.tabMovies),
+                      ],
+                    ),
+            ),
           ),
           body: searching
               ? SearchResultsList(

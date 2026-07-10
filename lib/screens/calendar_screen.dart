@@ -50,10 +50,10 @@ class CalendarScreen extends StatefulWidget {
   });
 
   @override
-  State<CalendarScreen> createState() => _CalendarScreenState();
+  State<CalendarScreen> createState() => CalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> {
+class CalendarScreenState extends State<CalendarScreen> {
   Future<List<_UpcomingItem>>? _future;
   String _query = '';
   int _searchFieldGeneration = 0;
@@ -69,6 +69,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _query = '';
       _searchFieldGeneration++;
     });
+  }
+
+  /// Called by [HomeShell] (via GlobalKey) the moment the user switches to
+  /// the other bottom-nav tab, so an open search doesn't linger and
+  /// silently reopen when they come back - HomeShell keeps every tab alive
+  /// (see its IndexedStack), so nothing else would ever close this.
+  void exitSearchIfOpen() {
+    if (_query.isNotEmpty) _exitSearch();
   }
 
   /// Pull-to-refresh: forces a fresh TMDB fetch for every watchlist item
